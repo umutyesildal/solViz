@@ -1,0 +1,82 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+/cypress/videos
+/cypress/screenshots
+/test-results/
+__snapshots__/
+.msw/
+junit.xml
+*.lcov
+.nyc_output/
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+/dist
+
+# misc
+.DS_Store
+*.pem
+Thumbs.db
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# local env files
+.env*.local
+.env
+.env.production
+.env.development
+.env.test
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# PWA files
+/public/sw.js
+/public/workbox-*.js
+/public/worker-*.js
+/public/fallback-*.js
+
+# Storybook
+/storybook-static
+
+# Build statistics
+bundle-stats.json
+analyze/
+.eslintcache
+
+# turbopack
+.turbo
+.turbo-cache
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Cache
+.cache/

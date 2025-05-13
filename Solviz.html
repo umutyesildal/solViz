@@ -1,0 +1,749 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>SolViz</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 3px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.column-list {
+	display: flex;
+	justify-content: space-between;
+}
+
+.column {
+	padding: 0 1em;
+}
+
+.column:first-child {
+	padding-left: 0;
+}
+
+.column:last-child {
+	padding-right: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+	border-collapse: collapse;
+}
+
+table {
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	padding-inline-start: 0;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+.page-description {
+	margin-bottom: 2em;
+}
+
+.simple-table {
+	margin-top: 1em;
+	font-size: 0.875rem;
+	empty-cells: show;
+}
+.simple-table td {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table th {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table-header-color {
+	background: rgb(247, 246, 243);
+	color: black;
+}
+.simple-table-header {
+	font-weight: 500;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-block;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	max-height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1.25em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+.pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+.pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+.pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+.pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+.pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+.pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.highlight-default {
+	color: rgba(50, 48, 44, 1);
+}
+.highlight-gray {
+	color: rgba(120, 119, 116, 1);
+	fill: rgba(120, 119, 116, 1);
+}
+.highlight-brown {
+	color: rgba(159, 107, 83, 1);
+	fill: rgba(159, 107, 83, 1);
+}
+.highlight-orange {
+	color: rgba(217, 115, 13, 1);
+	fill: rgba(217, 115, 13, 1);
+}
+.highlight-yellow {
+	color: rgba(203, 145, 47, 1);
+	fill: rgba(203, 145, 47, 1);
+}
+.highlight-teal {
+	color: rgba(68, 131, 97, 1);
+	fill: rgba(68, 131, 97, 1);
+}
+.highlight-blue {
+	color: rgba(51, 126, 169, 1);
+	fill: rgba(51, 126, 169, 1);
+}
+.highlight-purple {
+	color: rgba(144, 101, 176, 1);
+	fill: rgba(144, 101, 176, 1);
+}
+.highlight-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.highlight-red {
+	color: rgba(212, 76, 71, 1);
+	fill: rgba(212, 76, 71, 1);
+}
+.highlight-default_background {
+	color: rgba(50, 48, 44, 1);
+}
+.highlight-gray_background {
+	background: rgba(248, 248, 247, 1);
+}
+.highlight-brown_background {
+	background: rgba(244, 238, 238, 1);
+}
+.highlight-orange_background {
+	background: rgba(251, 236, 221, 1);
+}
+.highlight-yellow_background {
+	background: rgba(251, 243, 219, 1);
+}
+.highlight-teal_background {
+	background: rgba(237, 243, 236, 1);
+}
+.highlight-blue_background {
+	background: rgba(231, 243, 248, 1);
+}
+.highlight-purple_background {
+	background: rgba(248, 243, 252, 1);
+}
+.highlight-pink_background {
+	background: rgba(252, 241, 246, 1);
+}
+.highlight-red_background {
+	background: rgba(253, 235, 236, 1);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(120, 119, 116, 1);
+	fill: rgba(120, 119, 116, 1);
+}
+.block-color-brown {
+	color: rgba(159, 107, 83, 1);
+	fill: rgba(159, 107, 83, 1);
+}
+.block-color-orange {
+	color: rgba(217, 115, 13, 1);
+	fill: rgba(217, 115, 13, 1);
+}
+.block-color-yellow {
+	color: rgba(203, 145, 47, 1);
+	fill: rgba(203, 145, 47, 1);
+}
+.block-color-teal {
+	color: rgba(68, 131, 97, 1);
+	fill: rgba(68, 131, 97, 1);
+}
+.block-color-blue {
+	color: rgba(51, 126, 169, 1);
+	fill: rgba(51, 126, 169, 1);
+}
+.block-color-purple {
+	color: rgba(144, 101, 176, 1);
+	fill: rgba(144, 101, 176, 1);
+}
+.block-color-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.block-color-red {
+	color: rgba(212, 76, 71, 1);
+	fill: rgba(212, 76, 71, 1);
+}
+.block-color-default_background {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray_background {
+	background: rgba(248, 248, 247, 1);
+}
+.block-color-brown_background {
+	background: rgba(244, 238, 238, 1);
+}
+.block-color-orange_background {
+	background: rgba(251, 236, 221, 1);
+}
+.block-color-yellow_background {
+	background: rgba(251, 243, 219, 1);
+}
+.block-color-teal_background {
+	background: rgba(237, 243, 236, 1);
+}
+.block-color-blue_background {
+	background: rgba(231, 243, 248, 1);
+}
+.block-color-purple_background {
+	background: rgba(248, 243, 252, 1);
+}
+.block-color-pink_background {
+	background: rgba(252, 241, 246, 1);
+}
+.block-color-red_background {
+	background: rgba(253, 235, 236, 1);
+}
+.select-value-color-uiBlue { background-color: undefined; }
+.select-value-color-pink { background-color: rgba(225, 136, 179, 0.27); }
+.select-value-color-purple { background-color: rgba(168, 129, 197, 0.27); }
+.select-value-color-green { background-color: rgba(123, 183, 129, 0.27); }
+.select-value-color-gray { background-color: rgba(84, 72, 49, 0.15); }
+.select-value-color-transparentGray { background-color: undefined; }
+.select-value-color-translucentGray { background-color: undefined; }
+.select-value-color-orange { background-color: rgba(224, 124, 57, 0.27); }
+.select-value-color-brown { background-color: rgba(210, 162, 141, 0.35); }
+.select-value-color-red { background-color: rgba(244, 171, 159, 0.4); }
+.select-value-color-yellow { background-color: rgba(236, 191, 66, 0.39); }
+.select-value-color-blue { background-color: rgba(93, 165, 206, 0.27); }
+.select-value-color-pageGlass { background-color: undefined; }
+.select-value-color-washGlass { background-color: undefined; }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="1f2b9240-1035-8058-afc3-edee1ecee412" class="page sans"><header><div class="page-header-icon undefined"><span class="icon">🧙‍♂️</span></div><h1 class="page-title">SolViz</h1><p class="page-description"></p></header><div class="page-body"><h1 id="1f2b9240-1035-80d2-9641-ceb553120268" class=""><strong>SolViz Studio: Natural Language to Visualization for Solana Data</strong></h1><h2 id="1f2b9240-1035-8055-a200-d316e4132511" class=""><strong>Architecture and Design Overview</strong></h2><p id="1f2b9240-1035-80f8-986e-d102740afeef" class=""><strong>SolViz Studio</strong> is envisioned as a web application that turns natural language questions about Solana into data visualizations. The architecture consists of several key components:</p><ul id="1f2b9240-1035-807d-b026-dd8c198dca43" class="bulleted-list"><li style="list-style-type:disc"><strong>Front-End UI:</strong> A web interface (e.g. React) where users input queries in plain English and view resulting charts. It manages query input, displays charts, and provides options to refine, save, or export visualizations.</li></ul><ul id="1f2b9240-1035-8001-a5bb-d4388189fb78" class="bulleted-list"><li style="list-style-type:disc"><strong>Backend Orchestrator:</strong> A server (e.g. Node/Express or Python/FastAPI) that coordinates between the LLM, data APIs, and visualization generator. This layer receives the user query, calls the LLM to translate it into a data query, fetches data from the appropriate Solana API, and then formats the result for visualization.</li></ul><ul id="1f2b9240-1035-8046-a7e7-f4af9c7752b1" class="bulleted-list"><li style="list-style-type:disc"><strong>LLM Query Engine:</strong> An AI component (using GPT-4 or similar) that converts user natural language into a structured query (SQL, GraphQL, or RPC request) against Solana data sources. This engine uses carefully designed prompts (and possibly OpenAI function-calling) to ensure the output query matches the required syntax and schema.</li></ul><ul id="1f2b9240-1035-8031-a88e-da77da3ad2e8" class="bulleted-list"><li style="list-style-type:disc"><strong>Data Provider Connectors:</strong> Modules that interface with various Solana data APIs – for example, a GraphQL client for Bitquery, REST clients for Helius and Flipside, and an SQL client or API wrapper for Dune. Each connector handles authentication (API keys) and query execution, returning data in a normalized format.</li></ul><ul id="1f2b9240-1035-8000-9173-e96e96406638" class="bulleted-list"><li style="list-style-type:disc"><strong>Visualization Module:</strong> Logic that takes the returned data and automatically selects an appropriate chart type. It uses a visualization grammar (like Vega-Lite) to generate an interactive chart. This module also handles front-end rendering (perhaps via Vega-Lite JS libraries) and ensures charts are responsive and interactive.</li></ul><ul id="1f2b9240-1035-8068-b2b4-dfa47631aa30" class="bulleted-list"><li style="list-style-type:disc"><strong>State &amp; Storage:</strong> A database or in-browser storage to cache schema metadata (for faster LLM prompts) and to save user-created charts or dashboards. Saved visualizations include the query, dataset, and chart specification so they can be reloaded or shared without re-computation.</li></ul><p id="1f2b9240-1035-80ac-bc22-c8d3b8b62276" class=""><strong>Design Decisions:</strong> The system is modular: the LLM engine, data connectors, and visualization are decoupled. This allows swapping out the LLM or adding new data sources in the future. We use a <strong>stateless query generation</strong> approach – each query is processed independently by the LLM with relevant context (schemas, examples) provided in the prompt. Real-time updates (for live data queries) are handled via streaming APIs or periodic refresh in the front-end. The architecture favors a mix of real-time API calls (for current state queries) and warehouse queries (for historical analytics), since Solana data needs both low-latency and deep analytics capabilities<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Flipside%20and%20Dune%20provide%20SQL,dealing%20with%20raw%20RPC%20calls">helius.dev</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=For%20example%2C%20Flipside%20has%20approximately,minutes%2C%20depending%20on%20the%20dataset">helius.dev</a>.</p><p id="1f2b9240-1035-8034-beea-ca9d725dddb4" class="">Security and cost considerations are also important design factors:</p><ul id="1f2b9240-1035-80ee-9c5a-f53be17275a7" class="bulleted-list"><li style="list-style-type:disc">The backend sanitizes and validates LLM-generated queries (to avoid malicious or overly expensive operations).</li></ul><ul id="1f2b9240-1035-8072-a9f1-c7794610c382" class="bulleted-list"><li style="list-style-type:disc">API keys for data providers are kept secure on the server side.</li></ul><ul id="1f2b9240-1035-80c9-8f21-dc388e92dcff" class="bulleted-list"><li style="list-style-type:disc">Rate limits and quotas for each provider are monitored; the orchestrator may fall back to an alternate provider if one’s quota is exhausted or if it better serves a particular query type (more on this in the data integration section).</li></ul><p id="1f2b9240-1035-8031-9f11-f50318ac5ba6" class="">Overall, the design emphasizes a seamless user experience: users ask questions in natural language and get charts with minimal delay. Under the hood, the system dynamically chooses the best data source and query plan, much like how a database optimizer works, but guided by an LLM for understanding the intent.</p><h2 id="1f2b9240-1035-8085-8923-eb904474932b" class=""><strong>Multi-Provider Solana Data Integration</strong></h2><p id="1f2b9240-1035-8056-8ba2-fb13cbc15912" class="">SolViz Studio integrates multiple Solana data APIs to leverage their unique strengths. The four main providers considered are <strong>Bitquery</strong>, <strong>Helius</strong>, <strong>Flipside Crypto</strong>, and <strong>Dune Analytics</strong>. Each offers different data access methods and coverage:</p><ul id="1f2b9240-1035-80fd-8f7c-e32d59123dcc" class="bulleted-list"><li style="list-style-type:disc"><strong>Bitquery</strong> – a GraphQL-based blockchain data service supporting Solana. Bitquery provides rich indexed data (transactions, token transfers, NFT metadata, staking events, etc.) via GraphQL queries. It even offers real-time WebSocket subscriptions for live data (e.g. new trades) and decoded instruction data for readability<a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Real%20Time%20Solana%20Streams%20">bitquery.io</a><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=The%20Solana%20Transaction%20API%20is,security%20on%20the%20Solana%20network">bitquery.io</a>.</li></ul><ul id="1f2b9240-1035-80b1-aeef-c84b9da16fd9" class="bulleted-list"><li style="list-style-type:disc"><strong>Helius</strong> – a Solana-focused API and RPC provider with enriched endpoints. Helius offers high-performance RPC nodes and specialized APIs for tokens and NFTs (the Digital Asset Standard API)<a href="https://www.helius.dev/docs/das/get-nfts#:~:text=Learn%20how%20to%20retrieve%20and,data%20using%20Helius%20DAS%20API">helius.dev</a><a href="https://www.helius.dev/docs/das/get-nfts#:~:text=const%20response%20%3D%20await%20fetch%28%27https%3A%2F%2Fmainnet.helius,1">helius.dev</a>, as well as <strong>enhanced transaction parsing</strong>. It excels at giving human-readable outputs for on-chain data (e.g. decoding program state, token metadata, NFT collections) and provides streaming via webhooks and WebSockets for real-time events<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Webhooks%2C%20WebSocket%20%26%20Real">helius.dev</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=However%2C%20real,for%20historical%20data%20use%20cases">helius.dev</a>.</li></ul><ul id="1f2b9240-1035-80b8-86e3-e3158defd645" class="bulleted-list"><li style="list-style-type:disc"><strong>Flipside Crypto</strong> – a data warehouse (Snowflake) with <strong>pre-indexed Solana datasets</strong> accessible via SQL<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Flipside%20Crypto">helius.dev</a>. Flipside’s <em>ShroomDK</em> API allows queries against tables that include Solana transactions, token transfers, DeFi events, NFT sales, etc. This is ideal for <strong>historical analysis</strong> and heavy aggregations, since the data is organized in analytics-friendly tables (e.g. <code><strong>solana.core.fact_events</strong></code>, <code><strong>solana.nft.fact_nft_sales</strong></code> etc.)<a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=The%20data%20is%20organized%20in,data%20under%20the%20core%20table">medium.com</a><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20DATE_TRUNC,0%5D%29%29%20AS%20usrs">medium.com</a>. Queries are not real-time (data lags ~15 minutes)<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Both%20platforms%20index%20and%20structure,methods%20and%20data%20streaming%20tools">helius.dev</a> but Flipside offers generous free usage quotas (millions of query rows) making it suitable for community dashboards.</li></ul><ul id="1f2b9240-1035-803d-9d21-ddca2e113ce2" class="bulleted-list"><li style="list-style-type:disc"><strong>Dune Analytics</strong> – a community-driven analytics platform where users write SQL queries on curated Solana datasets<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Dune">helius.dev</a>. Dune provides raw tables (like <code><strong>solana.transactions</strong></code>, <code><strong>solana.instruction_calls</strong></code>, etc.) and higher-level abstractions. Dune’s API allows running saved queries or direct SQL against their engine, with a pay-per-use credit system<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Dune">helius.dev</a>. Dune is powerful for complex queries and for leveraging community-built queries, though its API requires managing query execution ids and results asynchronously.</li></ul><p id="1f2b9240-1035-8080-9c59-c0fa55238053" class=""><strong>Integration Strategy:</strong> We incorporate all four providers behind a unified interface. The LLM can choose which provider (or combination) to use for a given user query, based on the data needed:</p><ul id="1f2b9240-1035-808b-9a17-e48019191357" class="bulleted-list"><li style="list-style-type:disc"><em>Simple account info or on-chain state:</em> For questions about a specific address or transaction (e.g. “What is the balance of address X?” or “Decode this transaction signature”), the app favors <strong>Helius or Bitquery</strong>. Helius can directly fetch token balances or parse a transaction via its RPC or enhanced API (e.g. <code><strong>getBalance</strong></code> or <code><strong>getTransaction</strong></code> endpoints). The Solana ChatGPT plugin, for example, implemented endpoints like <code><strong>/getBalance</strong></code> and <code><strong>/getTransaction</strong></code> which internally call RPC and then format the response<a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetBalance%20">github.com</a><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetTransaction%20">github.com</a>. Bitquery can also get balances or transaction details via GraphQL, but using Helius/RPC is more direct for single-address queries.</li></ul><ul id="1f2b9240-1035-8081-859d-f65b1fd080f1" class="bulleted-list"><li style="list-style-type:disc"><em>NFT data:</em> <strong>Helius and Bitquery</strong> both provide NFT-specific data. Helius’s DAS API can list all NFTs owned by a wallet or fetch NFT metadata by mint address<a href="https://www.helius.dev/docs/das/get-nfts#:~:text=Learn%20how%20to%20retrieve%20and,data%20using%20Helius%20DAS%20API">helius.dev</a><a href="https://www.helius.dev/docs/das/get-nfts#:~:text=method%3A%20,J1S9H3QjnRtBbbuD4HjPV6RpRhwuk4zKbxsnCHuTgh9w">helius.dev</a>. Bitquery’s Solana NFT API can retrieve NFT ownership, metadata, transfer history, and even marketplace trades<a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=NFTs">bitquery.io</a><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Solana%20DEX%20Trades">bitquery.io</a>. For example, to get all NFTs in a wallet, the LLM might produce a Bitquery GraphQL query filtering balance updates for NFT mint addresses held by that owner. Alternatively, Helius offers a <code><strong>getAssetsByOwner</strong></code> method (via Metaplex’s API) to list NFTs, which was used in the Solana ChatGPT plugin<a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetAssetsByOwner%20">github.com</a>. For NFT trading volume or top collections, Flipside or Dune can be used (they have tables like <code><strong>fact_nft_sales</strong></code> for Solana with price and marketplace data<a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20marketplace%2C%20COUNT,fact_nft_sales">medium.com</a>). The strategy is to use Helius/Bitquery for <strong>item-level or live NFT info</strong> (e.g. “show my NFTs with images”) and Flipside/Dune for <strong>aggregated NFT stats</strong> (e.g. “daily NFT sales volume last month”).</li></ul><ul id="1f2b9240-1035-80a4-a4c2-c6abfa0fefda" class="bulleted-list"><li style="list-style-type:disc"><em>Staking and validator data:</em> <strong>Bitquery</strong> has a dedicated Staking/Rewards API that parses staking transactions and reward events<a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Staking%20Rewards">bitquery.io</a>. If a user asks “How much SOL is staked over time?” the LLM could use Bitquery’s <code><strong>Solana Rewards</strong></code> GraphQL to sum stake amounts by epoch. Flipside’s Solana tables also contain stake accounts and reward info (since Flipside’s analytics schema includes stake program interactions). In fact, complex stake metrics (like distribution of stake, top validators, stake activation over epochs) were built using Flipside in community dashboards<a href="https://medium.com/@thelitoshi/visualizing-the-solana-staking-ecosystem-bc59d0a0a3d7#:~:text=Key%20Metrics">medium.com</a><a href="https://medium.com/@thelitoshi/visualizing-the-solana-staking-ecosystem-bc59d0a0a3d7#:~:text=2.%20Sol%20Staked%3A%20389.095m%20SOL,network%20will%20become%20vulnerable%20to">medium.com</a>. The integration will lean on <strong>Flipside</strong> for broad stake analytics (e.g. total staked SOL, historical trends per epoch) since it can do SQL aggregations easily, while <strong>Bitquery</strong> can handle specific queries like “what were the latest stake rewards to a given account?” via its GraphQL.</li></ul><ul id="1f2b9240-1035-8034-b0aa-f1008a523b6f" class="bulleted-list"><li style="list-style-type:disc"><em>Transaction history &amp; token transfers:</em> This is a common query type (“Show SOL transfer count over time” or “Top 10 holders of token X”). <strong>Bitquery</strong> provides an easy GraphQL interface to token transfers and holders – e.g. a query to get the top 100 holders of a SPL token by filtering <code><strong>BalanceUpdates</strong></code> on that token mint<a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=query%20MyQuery%20,BalanceUpdate">docs.bitquery.io</a><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=Name%20MintAddress%20Symbol%20,">docs.bitquery.io</a>. Bitquery’s advantage is it can give <em>current state</em> (like current holders) in one query, and even subscribe to changes. For historical daily transfer counts, <strong>Flipside</strong> or <strong>Dune</strong> are well-suited: e.g. Flipside’s <code><strong>solana.core.fact_events</strong></code> table can be filtered for <code><strong>transfer</strong></code> instructions and grouped by date<a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20COUNT,INTERVAL%20%271%20Month%27%20AND%20SUCCEEDED">medium.com</a><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20DATE_TRUNC,0%5D%29%29%20AS%20usrs">medium.com</a>.</li></ul><ul id="1f2b9240-1035-8016-bda9-ee794a00f390" class="bulleted-list"><li style="list-style-type:disc"><em>Mempool / real-time activity:</em> Solana doesn’t have a traditional long-lived mempool (thanks to Gulf Stream), but near-real-time transaction flow can be tapped. For live metrics like “current TPS” or “recent transactions”, the app can use <strong>Helius or Bitquery streaming</strong>. Bitquery supports GraphQL subscriptions that push new transfers or trades instantly<a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Real%20Time%20Solana%20Streams%20">bitquery.io</a>, and Helius offers WebSocket or webhook streams from their Geyser infrastructure<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Geyser%20streams%20work%20by%20directly,access%20to%20new%20blockchain%20events">helius.dev</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Webhooks%2C%20WebSocket%20%26%20Real">helius.dev</a>. The integration might maintain an open WebSocket (to Helius or Bitquery) that updates certain live dashboards (like a mempool activity feed or latest NFT mint ticker). For user queries specifically asking about unconfirmed activity, we’d rely on these streaming endpoints since Flipside/Dune only update with confirmed data after some delay<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Both%20platforms%20index%20and%20structure,methods%20and%20data%20streaming%20tools">helius.dev</a>.</li></ul><p id="1f2b9240-1035-80d3-86ca-efab03e5de3a" class=""><strong>API Endpoints &amp; Examples:</strong> The following illustrates how queries are formed for each provider:</p><ul id="1f2b9240-1035-808f-8b09-fd2663d88646" class="bulleted-list"><li style="list-style-type:disc"><em>Bitquery GraphQL example:</em> To get the token balances in a wallet, the LLM might produce a GraphQL query using Bitquery’s schema. For instance:<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="1f2b9240-1035-80b3-ae66-ecc2440735d7" class="code"><code class="language-GraphQL" style="white-space:pre-wrap;word-break:break-all">graphql
+Copy
+query WalletTokenBalances {
+  Solana {
+    BalanceUpdates(
+      where: {BalanceUpdate: {Account: {Owner: {is: &quot;&lt;WALLET_ADDRESS&gt;&quot;}}}}
+      orderBy: {descendingByField: &quot;BalanceUpdate_Balance_maximum&quot;}
+    ) {
+      BalanceUpdate {
+        Balance: PostBalance(maximum: Block_Slot)
+        Currency {
+          Name
+          Symbol
+        }
+      }
+    }
+  }
+}
+
+</code></pre><p id="1f2b9240-1035-80ef-aaf6-cba403f51522" class="">This GraphQL query (similar to Bitquery’s examples) filters balance updates by wallet address and returns the latest balance of each token and its symbol<a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=query%20MyQuery%20,Balance%3A%20PostBalance%28maximum%3A%20Block_Slot">docs.bitquery.io</a><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=Name%20Symbol%20,">docs.bitquery.io</a>. Bitquery’s endpoint is a single GraphQL URL (e.g. <code><strong>https://graphql.bitquery.io</strong></code>), so the app sends this query with an authorization token and gets JSON results.</p></li></ul><ul id="1f2b9240-1035-8009-ba59-cca612523478" class="bulleted-list"><li style="list-style-type:disc"><em>Helius REST/RPC example:</em> Suppose a user asks, “What tokens does wallet X hold and what are their USD values?” The LLM could decide to call Helius. The SolViz backend might use Helius’s REST API like: <p id="1f2b9240-1035-803b-ada3-f37bebbe5c8c" class=""><code><strong>GET https://api.helius.dev/v0/addresses/&lt;WALLET_ADDRESS&gt;/balances?api-key=YOUR_KEY</strong></code></p><p id="1f2b9240-1035-800c-9b7d-d33a3ca6c4bc" class="">This (hypothetical) endpoint would return all token balances for the address, including SOL and SPL tokens, with metadata. Helius’s documentation indicates their Token API can fetch token balances and even quote USD prices<a href="https://www.helius.dev/solana-token-apis#:~:text=Wallets">helius.dev</a><a href="https://www.helius.dev/solana-token-apis#:~:text=Portfolio%20trackers">helius.dev</a>. If Helius doesn’t have a single endpoint for all balances, the orchestrator could fall back to a standard RPC call <code><strong>getTokenAccountsByOwner</strong></code> and then use Helius’s price service (or HelloMoon API as used in Solana’s ChatGPT plugin) to convert to USD<a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetTotalValue%20">github.com</a>. Another Helius example: for NFT data, one can call a JSON RPC on Helius with method <code><strong>getAsset</strong></code> or <code><strong>getAssetsByGroup</strong></code> (for collection)<a href="https://www.helius.dev/docs/das/get-nfts#:~:text=method%3A%20,J1S9H3QjnRtBbbuD4HjPV6RpRhwuk4zKbxsnCHuTgh9w">helius.dev</a>, which returns structured NFT metadata that the LLM can parse and relay.</p></li></ul><ul id="1f2b9240-1035-8022-bd8d-e93db05e8b70" class="bulleted-list"><li style="list-style-type:disc"><em>Flipside SQL example:</em> For a question like “Daily number of transactions and users in the past month,” the LLM would generate an SQL query for Flipside. Using Flipside’s schema, an example (drawn from a Flipside tutorial) might be:<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="1f2b9240-1035-80fd-a765-e47afe26b6d0" class="code"><code class="language-SQL" style="white-space:pre-wrap;word-break:break-all">sql
+Copy
+SELECT DATE_TRUNC(&#x27;day&#x27;, block_timestamp) AS date,
+       COUNT(DISTINCT tx_id) AS tx_count,
+       COUNT(DISTINCT signers[0]) AS user_count
+FROM solana.core.fact_events
+WHERE block_timestamp &gt; CURRENT_DATE - INTERVAL &#x27;30 days&#x27;
+  AND succeeded = TRUE
+GROUP BY 1;
+
+</code></pre><p id="1f2b9240-1035-801f-ab35-d5924054bf74" class="">This query uses the <code><strong>fact_events</strong></code> table which logs Solana transaction events, grouping by day<a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20DATE_TRUNC,0%5D%29%29%20AS%20usrs">medium.com</a>. The orchestrator would send this SQL to Flipside’s API endpoint (using the provided API key). Flipside’s API (ShroomDK) typically expects a POST with the SQL query and returns a JSON of results once the query executes. We may use their Python/JS SDK under the hood, e.g. <code><strong>flipside.query(sql)</strong></code> in Python which abstracts the polling for result<a href="https://docs.flipsidecrypto.xyz/data/data-products/api-sdk-developers/get-started/run-your-first-query#:~:text=from%20flipside%20import%20Flipside">docs.flipsidecrypto.xyz</a><a href="https://docs.flipsidecrypto.xyz/data/data-products/api-sdk-developers/get-started/run-your-first-query#:~:text=">docs.flipsidecrypto.xyz</a>. The result is a JSON array of date, tx_count, user_count that our app can turn into a time-series chart.</p></li></ul><ul id="1f2b9240-1035-8076-8be2-c90a945e0569" class="bulleted-list"><li style="list-style-type:disc"><em>Dune API example:</em> If the LLM chooses Dune (perhaps because a very specific Dune-curated table or an existing saved query is relevant), the backend can run a saved query via Dune’s REST API. For instance, Dune has a table <code><strong>solana.nft.sales</strong></code> in its curated sets; a user asks “Weekly NFT sales per marketplace”. The LLM generates a SQL similar to Flipside’s but for Dune’s schema:<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="1f2b9240-1035-809b-ac7e-f6bcf20c9172" class="code"><code class="language-SQL" style="white-space:pre-wrap;word-break:break-all">sql
+Copy
+SELECT date_trunc(&#x27;week&#x27;, block_time) AS week, marketplace, COUNT(*) AS sales_count
+FROM solana.core.fact_nft_sales
+GROUP BY 1, 2
+
+</code></pre><p id="1f2b9240-1035-80a8-9181-c702d2b5d73c" class="">To execute on Dune, we first create or identify a Dune query ID that contains this SQL. Then we call Dune’s execute endpoint:</p><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="1f2b9240-1035-80f5-bdff-e1ffeddbf8e1" class="code"><code class="language-Plain Text" style="white-space:pre-wrap;word-break:break-all">bash
+Copy
+POST https://api.dune.com/api/v1/query/&lt;query_id&gt;/execute
+Headers: X-Dune-API-Key: &lt;API_KEY&gt;
+
+</code></pre><p id="1f2b9240-1035-805a-b452-dcdf191c2e1d" class="">The response will give an <code><strong>execution_id</strong></code> and the query will run asynchronously<a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=Java">docs.dune.com</a><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=query_id">docs.dune.com</a>. Our backend will then call Dune’s result endpoint or use their Python SDK to retrieve the result when ready<a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=Execute%20query%20and%20get%20result,in%20one%20call">docs.dune.com</a><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=,example%20we%20print%20the%20rows">docs.dune.com</a>. (We may also leverage Dune’s newer API that allows direct SQL submissions, if available, to avoid manual query creation.)</p></li></ul><p id="1f2b9240-1035-807b-aea8-ecb741f77566" class=""><strong>Choosing Provider by Query Type:</strong> The system uses simple rules (and prompt engineering for the LLM) to pick the best data source:</p><ul id="1f2b9240-1035-8060-ba56-e3e40a8de8ab" class="bulleted-list"><li style="list-style-type:disc">If the query is <strong>address-specific or real-time</strong>, prefer Helius or Bitquery (RPC or GraphQL) for immediate results.</li></ul><ul id="1f2b9240-1035-8028-8a3d-de5a90cfc410" class="bulleted-list"><li style="list-style-type:disc">If the query is <strong>analytical, historical, or heavy</strong>, prefer Flipside or Dune (SQL engines)<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=However%2C%20real,for%20historical%20data%20use%20cases">helius.dev</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=analytical%20use%20cases,methods%20and%20data%20streaming%20tools">helius.dev</a>.</li></ul><ul id="1f2b9240-1035-8014-9d84-e208a24eee84" class="bulleted-list"><li style="list-style-type:disc">If one provider lacks data for a query, try another. For example, a request for “Solana wallet with most NFT trades” might be easier on Dune (if someone created a NFT trade volume table) whereas Flipside would require joining multiple tables – the LLM might know from its instructions which source has a ready dataset.</li></ul><ul id="1f2b9240-1035-80b3-9e60-f582591bb1c0" class="bulleted-list"><li style="list-style-type:disc">Consider <strong>quota/latency</strong>: Flipside queries might return in a few seconds, whereas a similar Dune query could be faster or slower depending on workload. If a Flipside query is too large (approaching their free limit) the app could warn or switch to Dune if the user has Dune credits. Conversely, if the user has no Dune API key configured, we wouldn’t choose Dune.</li></ul><p id="1f2b9240-1035-80eb-953c-d26f66feb2e8" class="">We maintain <strong>fallback logic</strong>. For instance, if a Bitquery GraphQL query fails (due to rate limit or error), the orchestrator might attempt an equivalent using Helius or a direct RPC call (since many Bitquery queries can be replicated with raw RPC data, albeit with more code). Similarly, if Flipside’s API is slow or down, we can route to Dune (assuming the query can be translated to Dune’s schema). This dynamic switching ensures reliability and optimizes for speed and cost – using free quotas where possible and sharing load among providers.</p><h2 id="1f2b9240-1035-806d-9395-ee9a782cec63" class=""><strong>LLM-Driven Query Engine Implementation</strong></h2><p id="1f2b9240-1035-80c2-857c-e7ef29b5d88d" class="">At the heart of SolViz Studio is the Large Language Model that interprets user questions and produces correct, efficient queries. Building this component involves prompt engineering, output structuring, and robust validation:</p><ul id="1f2b9240-1035-804c-9f2c-d900114426de" class="bulleted-list"><li style="list-style-type:disc"><strong>Prompting Strategy:</strong> We craft a system prompt that clearly instructs the model about its role (“You are a data assistant for Solana blockchain analytics...”) and provides <strong>context</strong> about the available data sources and schemas. The model needs to know which providers exist and the high-level structure of their data. For example, the prompt might include brief descriptions like: <em>“Bitquery: GraphQL schema with BalanceUpdates, Transactions, etc. Flipside: SQL with tables like solana.core.fact_transactions, solana.nft.fact_nft_sales...”</em>. We also feed the LLM a few <strong>examples</strong> of user queries and the desired output format (one example per provider). This one-shot or few-shot approach guides the model to follow our format.</li></ul><ul id="1f2b9240-1035-8090-a7e4-ebf11d20814e" class="bulleted-list"><li style="list-style-type:disc"><strong>Function Calling / Structured Output:</strong> To enforce that the LLM returns a machine-readable query (instead of a narrated answer), we use the OpenAI function-calling feature. We define a function, e.g. <code><strong>generate_data_query(provider, query_text)</strong></code>, where <code><strong>provider</strong></code> is an enum (<code><strong>&quot;Bitquery&quot; | &quot;Helius&quot; | &quot;Flipside&quot; | &quot;Dune&quot;</strong></code>) and <code><strong>query_text</strong></code> is a string containing the actual GraphQL or SQL to run. The model, upon understanding the user request, will choose the function and fill in these arguments. For instance, the model might respond with:<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="1f2b9240-1035-80d2-8d86-fc6f78a42c9d" class="code"><code class="language-JSON" style="white-space:pre-wrap;word-break:break-all">json
+Copy
+{
+  &quot;function&quot;: &quot;generate_data_query&quot;,
+  &quot;arguments&quot;: {
+     &quot;provider&quot;: &quot;Flipside&quot;,
+     &quot;query_text&quot;: &quot;SELECT ... (SQL query as above) ...&quot;
+   }
+}
+
+</code></pre><p id="1f2b9240-1035-8085-a4d4-f48bdddad5fe" class="">By using a function call, we get a guaranteed JSON structure that our backend can easily parse and act on. This method was demonstrated in similar contexts (e.g. converting NL to SQL with function calls) and helps avoid the model returning extraneous text<a href="https://alex000kim.com/posts/2024-05-05-function-calling-experiments/#:~:text=There%20will%20be%20two%20function,calling%20examples">alex000kim.com</a>. If not using OpenAI’s functions, an alternative is to ask the model to output YAML/JSON directly with fields for provider and query – but the function approach is cleaner and reduces formatting errors.</p></li></ul><ul id="1f2b9240-1035-804b-92fa-ff9566d45ef3" class="bulleted-list"><li style="list-style-type:disc"><strong>Dynamic Schema Provisioning:</strong> To help the LLM produce correct queries, we provide schema information. We <strong>cache the schema</strong> of each API upfront:<ul id="1f2b9240-1035-80c8-a8e3-d4d90192c688" class="bulleted-list"><li style="list-style-type:circle">For <strong>Bitquery (GraphQL)</strong>, we can introspect their API to get type definitions for relevant entities (accounts, transactions, etc.). We’ll condense this into a prompt-friendly form (e.g. list of important query fields and filters). For example: <em>“Bitquery Schema Snippet: BalanceUpdates has fields: PostBalance, Account.Owner, Currency.MintAddress, etc.”</em>.</li></ul><ul id="1f2b9240-1035-80e4-8c93-c3e8b3929b7c" class="bulleted-list"><li style="list-style-type:circle">For <strong>Helius</strong>, since it’s mostly fixed endpoints, we simply describe what each endpoint returns (the model doesn’t need to output the exact REST call, since we handle it, but it should know what’s available; e.g. <em>“Helius getNFTs returns all NFTs for owner”</em>).</li></ul><ul id="1f2b9240-1035-80fd-908e-e83a6d0e9677" class="bulleted-list"><li style="list-style-type:circle">For <strong>Flipside and Dune</strong>, which have many tables, we can’t send everything. Instead, we maintain a mapping of <strong>concepts to tables</strong>. Using an embedding-based approach, we can store table schemas in a vector index and retrieve the ones relevant to the query. For example, if the user asks about NFTs, we inject schema info for <code><strong>fact_nft_mints</strong></code> and <code><strong>fact_nft_sales</strong></code>. (Uber’s internal “QueryGPT” system does something similar: it uses a vector database to fetch relevant table schemas and example queries based on the NL question<a href="https://www.uber.com/blog/query-gpt/#:~:text=QueryGPT%20uses%20large%20language%20models,by%20the%20user%20as%20input">uber.com</a><a href="https://www.uber.com/blog/query-gpt/#:~:text=vectorize%20it%20and%20do%20a,and%207%20relevant%20SQL%20samples">uber.com</a>.) This way the prompt remains concise and focused on the domain needed.</li></ul></li></ul><ul id="1f2b9240-1035-80e0-8109-e18731e4c3ed" class="bulleted-list"><li style="list-style-type:disc"><strong>Prompt Adaptation per Provider:</strong> We tailor the prompt depending on which provider the LLM is likely to use. If we have function calling, one approach is to present multiple function options (one for each provider) and let the model choose. Another approach is a two-step prompt: first, ask the model (with a smaller prompt) to decide <em>which provider</em> is best for the query (perhaps by having it output just the provider name). Then, in a second call, use a provider-specific prompt template that includes detailed schema for that provider and ask for the query. However, the single-step function call is efficient if the model is well-instructed on all providers at once. We include different <strong>examples in the few-shot prompt</strong> for each style. For instance:<ul id="1f2b9240-1035-8076-9ac9-f9b82bcba6e6" class="bulleted-list"><li style="list-style-type:circle">Example 1: User asks for a wallet’s NFTs → model outputs a Bitquery GraphQL example.</li></ul><ul id="1f2b9240-1035-80e6-b739-f05651aac818" class="bulleted-list"><li style="list-style-type:circle">Example 2: User asks for historical transaction count → model outputs a Flipside SQL.</li></ul><ul id="1f2b9240-1035-808b-8124-cf0dffb67484" class="bulleted-list"><li style="list-style-type:circle">Example 3: User asks for latest token transfers → model outputs a Helius/RPC example.</li></ul><p id="1f2b9240-1035-8003-857a-ccf7549e8114" class="">By seeing exemplars, the model can infer patterns. We explicitly mention to only use <em>one</em> provider per query to keep things simple initially (no joining data across APIs in one go, though the backend could do multiple calls if absolutely needed).</p></li></ul><ul id="1f2b9240-1035-8018-ac4c-df7ce998fbc0" class="bulleted-list"><li style="list-style-type:disc"><strong>Guardrails and Validation:</strong> Once the LLM produces a query, the backend <strong>validates</strong> it before execution:<ul id="1f2b9240-1035-806e-a90b-c3d4d9dfdd2e" class="bulleted-list"><li style="list-style-type:circle"><strong>Syntax check:</strong> We run a quick syntax validation (e.g. parse the SQL or GraphQL). If it fails, we know the model output was malformed. In such cases, we can either ask the LLM again with more constraints or do a minor correction (like adding a missing bracket) if obvious.</li></ul><ul id="1f2b9240-1035-8059-b0f1-e2ba8adb9686" class="bulleted-list"><li style="list-style-type:circle"><strong>Schema check:</strong> We verify that the fields used in the query actually exist. For SQL, we could pre-check the query against a known schema (e.g., no unknown table names). For GraphQL, the Bitquery API itself will error if a field is wrong, but catching it beforehand allows a second chance with the LLM by providing the error message.</li></ul><ul id="1f2b9240-1035-80c3-af0d-facbb364c6fe" class="bulleted-list"><li style="list-style-type:circle"><strong>Limit enforcement:</strong> To avoid huge data pulls, the system might automatically append a <code><strong>LIMIT 1000</strong></code> to SQL queries if not present, or restrict time ranges. If the user asked for “all-time data”, the LLM should include a sensible date filter or aggregation; if it doesn’t, our guardrail might add a default filter (like last 1 year) or ask the model to refine the query. We also ensure no <em>unsafe</em> queries are generated (like ones that attempt to modify data, though our connections are read-only by nature).</li></ul><ul id="1f2b9240-1035-8070-8234-e65627801a85" class="bulleted-list"><li style="list-style-type:circle"><strong>Cost awareness:</strong> For Dune, since queries cost credits, we might estimate the result size by doing a smaller <code><strong>COUNT(*)</strong></code> query first via the LLM plan or by limiting the date range. Similarly for Flipside, although free, large queries take longer – if we detect a potentially long-running query, we could notify the user that it may take a bit of time or suggest refining it.</li></ul></li></ul><ul id="1f2b9240-1035-8079-be99-ed2ce2d3e7e0" class="bulleted-list"><li style="list-style-type:disc"><strong>Guardrails in Natural Language Understanding:</strong> We also add prompt instructions to <strong>avoid certain pitfalls</strong>: for example, if the user query is ambiguous or likely to produce a very expensive result (“show all transactions ever”), the LLM should politely request clarification or add reasonable limits. The prompt might say: <em>“If the user request is too broad (e.g. no timeframe on a huge metric), assume a default recent timeframe or ask a follow-up (we can implement a clarifying question to the user if needed).”</em> This ensures the model doesn’t naively generate a massive query that times out.</li></ul><ul id="1f2b9240-1035-8010-8872-db981deb00be" class="bulleted-list"><li style="list-style-type:disc"><strong>Step-by-step refinement:</strong> In complex cases, the system could do multi-turn interactions with the LLM. For instance, model first retrieves relevant schema (as in function-calling approach #2 from Alex Kim’s experiment)<a href="https://alex000kim.com/posts/2024-05-05-function-calling-experiments/#:~:text=1.%20A%20simple%20one,natural%20language%20query%20into%20SQL">alex000kim.com</a>, then uses it to produce the final query. We might implement this if single-shot performance is lacking. Initially, we try to keep it one-shot with all necessary context provided, which several text-to-SQL studies have shown to work for moderate schema sizes<a href="https://alex000kim.com/posts/2024-05-05-function-calling-experiments/#:~:text=1.%20A%20simple%20one,natural%20language%20query%20into%20SQL">alex000kim.com</a>.</li></ul><ul id="1f2b9240-1035-8047-8b8a-df0a8d59b766" class="bulleted-list"><li style="list-style-type:disc"><strong>Model Fine-tuning:</strong> For even better accuracy in the Solana context, we can consider fine-tuning or custom training. We could gather a dataset of &lt;user question, ideal query&gt; pairs. Sources might include public Dune queries (paired with their titles/descriptions as a pseudo NL question) or Stack Exchange questions about Solana data. By fine-tuning GPT-3.5 or a smaller LLM on these, we’d get a specialized model that might perform faster (and cheaper) than calling GPT-4 each time. However, given GPT-4’s strong capabilities and our ability to supply context, fine-tuning is an optional enhancement. Another approach is using retrieval augmented generation: store Solana knowledge (like common addresses, program names, etc.) so the model has more context to avoid errors in interpretation (for example, knowing that “SOL” refers to the native token, or that “Candy Machine” is an NFT mint program, etc., which might influence the query structure).</li></ul><p id="1f2b9240-1035-80bc-8322-de383b889651" class="">In summary, the LLM engine translates human questions to data queries with a combination of careful prompting, function-driven output formatting, and backend checks. These guardrails and schema-awareness ensure we get <strong>correct and safe queries</strong> that we can then execute to fetch the data.</p><h2 id="1f2b9240-1035-8049-99fe-e1c250286339" class=""><strong>Visualization and Charting Logic</strong></h2><p id="1f2b9240-1035-801b-a346-cad3029a495a" class="">Once we have the data results, SolViz Studio automatically generates an appropriate visualization. The goals for the visualization module are to choose the right chart type for the data, render it in an interactive way, and allow user-friendly interactions (tooltips, filters, etc.), all while maintaining a responsive layout.</p><ul id="1f2b9240-1035-803c-a6ef-ebaca90301d4" class="bulleted-list"><li style="list-style-type:disc"><strong>Automatic Chart Type Selection:</strong> The system infers the best chart based on the structure of the query results:<ul id="1f2b9240-1035-8060-bee4-dac28c17539f" class="bulleted-list"><li style="list-style-type:circle">If the result has a <strong>time series</strong> (e.g. a date column and a value column), a line chart is typically used to show trends over time. Multiple value columns or categories with a date would result in a multi-line chart (or area chart) with a legend.</li></ul><ul id="1f2b9240-1035-80e2-81b3-e6515cd66de2" class="bulleted-list"><li style="list-style-type:circle">If the data is an <strong>aggregation by category</strong> (e.g. top 10 tokens by volume), a bar chart or column chart is appropriate. For a small number of categories, a pie or donut chart could be considered (though pie charts are harder to read for many slices).</li></ul><ul id="1f2b9240-1035-80aa-afcd-c128dfafb80b" class="bulleted-list"><li style="list-style-type:circle">A <strong>single numeric value</strong> (like “current total staked SOL”) might just be shown as a KPI card or a big number, possibly with a gauge or indicator if there’s a target.</li></ul><ul id="1f2b9240-1035-800f-b20e-f754c7a4165c" class="bulleted-list"><li style="list-style-type:circle">If data has <strong>geographical</strong> context (less likely in Solana’s on-chain data, unless analyzing IPs or something off-chain), we could do a map – but such cases are rare here.</li></ul><ul id="1f2b9240-1035-8006-b819-f82c763d3370" class="bulleted-list"><li style="list-style-type:circle">For <strong>relationships or distributions</strong> (e.g. a scatter plot of two variables, or histogram of transaction sizes), the engine would choose those specialized charts when relevant.</li></ul><p id="1f2b9240-1035-8054-ad3a-c6cfe88d3a95" class="">The chart selection can be rule-based. We implement a simple heuristic: examine the number of columns and their data types in the result. For example:</p><ul id="1f2b9240-1035-8006-8cb9-e2ffdc7ca5dd" class="bulleted-list"><li style="list-style-type:circle">2 columns: one time/datetime, one numeric → line chart.</li></ul><ul id="1f2b9240-1035-80c8-9641-d6e3341da4e9" class="bulleted-list"><li style="list-style-type:circle">2 columns: one categorical, one numeric → bar chart.</li></ul><ul id="1f2b9240-1035-8020-956a-f85dc0290d20" class="bulleted-list"><li style="list-style-type:circle">3 columns: time, category, numeric → line chart with series (category as series) or perhaps grouped bar by time.</li></ul><ul id="1f2b9240-1035-809a-8d73-cd15e99097a1" class="bulleted-list"><li style="list-style-type:circle">1 column: just numeric → big number display.</li></ul><ul id="1f2b9240-1035-803d-941b-d6a74cbf62dd" class="bulleted-list"><li style="list-style-type:circle">2+ numeric columns with no obvious category → table or correlation plot.</li></ul><p id="1f2b9240-1035-8044-b774-c9c202aed7b8" class="">In addition, we could incorporate an LLM here as well – e.g., feed the data summary to a prompt: “Suggest a good chart type for this data.” But that may be overkill; a deterministic approach based on known best practices is sufficient for now.</p></li></ul><ul id="1f2b9240-1035-80b9-a22c-f0f52dfd464d" class="bulleted-list"><li style="list-style-type:disc"><strong>Vega-Lite for Rendering:</strong> We choose <strong>Vega-Lite</strong> as the visualization framework. Vega-Lite is a high-level grammar of interactive graphics that can declaratively specify charts in JSON. By using Vega-Lite, we benefit from:<ul id="1f2b9240-1035-8032-907b-cbcc067da98b" class="bulleted-list"><li style="list-style-type:circle">A wide range of chart types and composite views (layering, facets).</li></ul><ul id="1f2b9240-1035-8071-947f-fe1114a02193" class="bulleted-list"><li style="list-style-type:circle">Built-in support for selections, tooltips, zooming, etc., with simple specifications.</li></ul><ul id="1f2b9240-1035-80ec-8446-d8230d5dbacb" class="bulleted-list"><li style="list-style-type:circle">The ability to compile Vega-Lite specs to Vega or directly render in the browser using libraries like <code><strong>vega-embed</strong></code>.</li></ul><p id="1f2b9240-1035-80e8-a306-ff893b875532" class="">The visualization module will translate the chosen chart type and data into a Vega-Lite specification. For example, if the result is a time series of daily transaction counts, we produce a spec:</p><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="1f2b9240-1035-80a5-b2a4-fdf0a50900b1" class="code"><code class="language-JSON" style="white-space:pre-wrap;word-break:break-all">json
+Copy
+{
+  &quot;$schema&quot;: &quot;https://vega.github.io/schema/vega-lite/v5.json&quot;,
+  &quot;data&quot;: { &quot;values&quot;: [ /* result data as array of objects */ ] },
+  &quot;mark&quot;: &quot;line&quot;,
+  &quot;encoding&quot;: {
+    &quot;x&quot;: {&quot;field&quot;: &quot;date&quot;, &quot;type&quot;: &quot;temporal&quot;, &quot;title&quot;: &quot;Date&quot;},
+    &quot;y&quot;: {&quot;field&quot;: &quot;tx_count&quot;, &quot;type&quot;: &quot;quantitative&quot;, &quot;title&quot;: &quot;Transactions&quot;}
+  },
+  &quot;width&quot;: &quot;container&quot;,
+  &quot;height&quot;: 300
+}
+
+</code></pre><p id="1f2b9240-1035-8044-8c9a-ffa798b14e81" class="">This JSON tells Vega-Lite to draw a line chart of <code><strong>tx_count</strong></code> over time on the x-axis. We set width to &quot;container&quot; so it responsively fills the parent element. Similar templates are used for bar charts, etc. We can maintain a library of template specs for each chart type and just plug in the field names from the data. In more complex cases, we might need to transform data (e.g. compute percentages for a pie chart). Vega-Lite can do transformations in the spec (like aggregating, binning for histograms, calculating new fields) – we will use those features as needed rather than modifying data in code.</p><p id="1f2b9240-1035-809b-8974-c2538577e605" class="">Vega-Lite is a good choice also because it’s text-based – potentially, the LLM itself could output a Vega-Lite spec if we asked it. However, generating the spec programmatically is straightforward once we know the chart type and data fields, so we don’t need to burden the LLM with detailed chart syntax.</p></li></ul><ul id="1f2b9240-1035-8019-a4e3-e4803e61eca7" class="bulleted-list"><li style="list-style-type:disc"><strong>Interactivity and User Controls:</strong> We want the charts to be interactive:<ul id="1f2b9240-1035-80a1-b78d-e134cfba3b0a" class="bulleted-list"><li style="list-style-type:circle"><strong>Tooltips:</strong> Vega-Lite by default shows tooltips on hover with the data values. We will ensure this is enabled so that when a user hovers on a line or bar, they see the exact values.</li></ul><ul id="1f2b9240-1035-806d-9a0a-c79c9ca6ddb6" class="bulleted-list"><li style="list-style-type:circle"><strong>Zoom/Pan:</strong> For time series, enabling zooming and panning can be useful to examine a specific range. Vega-Lite allows defining a selection that is bound to scales – we can enable a drag zoom on the x-axis.</li></ul><ul id="1f2b9240-1035-80e6-9a3b-f9029a52efac" class="bulleted-list"><li style="list-style-type:circle"><strong>Filtering:</strong> If a chart has multiple categories (e.g. multiple lines for different tokens), we can add an interactive legend or filter widgets (like checkboxes to show/hide series). Vega-Lite can do interactive selection filtering. Alternatively, we can provide UI controls outside the chart (like multi-select dropdown) that triggers re-rendering the spec with filtered data.</li></ul><ul id="1f2b9240-1035-8056-b194-fadafdddb723" class="bulleted-list"><li style="list-style-type:circle"><strong>Layout Design:</strong> The front-end will place the chart in a card-like container, possibly alongside the query text or description. We ensure the layout is responsive using CSS – on wide screens, maybe multiple charts can sit side by side if the user has created several; on mobile, they stack vertically. Vega-Lite charts are responsive if we use relative sizing.</li></ul><ul id="1f2b9240-1035-80d5-8d66-ea7c178cde6d" class="bulleted-list"><li style="list-style-type:circle">We also keep in mind theming – using Solana’s brand colors or a dark theme background if the app supports dark mode. Vega-Lite specs can include a custom color scheme or we can override via CSS on the chart container.</li></ul></li></ul><ul id="1f2b9240-1035-802a-bbe1-f8e54871b350" class="bulleted-list"><li style="list-style-type:disc"><strong>Export Features:</strong> Users will likely want to export the visualization. We provide multiple options:<ul id="1f2b9240-1035-809a-aa62-edc55d02e93c" class="bulleted-list"><li style="list-style-type:circle"><strong>Download as Image:</strong> Using Vega’s ability to export, or the canvas API, we let users save the chart as a PNG or SVG. Vega-Embed library actually provides an option to download PNG/SVG of the chart via a built-in button if enabled.</li></ul><ul id="1f2b9240-1035-8045-8d42-e37352ce3dac" class="bulleted-list"><li style="list-style-type:circle"><strong>Export Data:</strong> Users can download the underlying data as CSV. This is straightforward since we already have the data in JSON – we can offer a “Download data” link.</li></ul><ul id="1f2b9240-1035-8066-b9e4-fa2b7704ca7e" class="bulleted-list"><li style="list-style-type:circle"><strong>Embed Code:</strong> We also allow users to get an embed snippet. For example, an HTML snippet that includes a <code><strong>&lt;script src=&quot;https://cdn.jsdelivr.net/npm/vega-embed&quot;&gt;</strong></code> and a container with the Vega-Lite spec JSON. This would let them embed the interactive chart on another web page. However, not all platforms allow arbitrary script embeds.</li></ul><p id="1f2b9240-1035-80de-bd97-d73d2713ada4" class="">To specifically support <strong>Notion or Medium</strong>:</p><ul id="1f2b9240-1035-8088-883d-da0cabbcd9e9" class="bulleted-list"><li style="list-style-type:circle"><strong>Notion:</strong> Notion allows embedding iframes or certain content. We could host the chart on a minimal page (at a shareable URL) and then the user can use Notion’s embed block with that URL. Alternatively, export an image and simply paste into Notion (loses interactivity though). A more advanced idea: Notion has an API; we could potentially push a screenshot into a Notion page if the user connects their account.</li></ul><ul id="1f2b9240-1035-807b-86f5-fccc94c4d30e" class="bulleted-list"><li style="list-style-type:circle"><strong>Medium:</strong> Medium does not allow custom scripts or iframes from unrecognized sources for security. The likely route is to use an image. We will allow the user to download a high-quality image of the chart which they can upload to Medium. We might also generate a brief description or alt-text for the image (the LLM can help describe the chart) to accompany it.</li></ul></li></ul><ul id="1f2b9240-1035-8028-96ba-e9c366afcb65" class="bulleted-list"><li style="list-style-type:disc"><strong>Responsive Behavior:</strong> Ensuring the charts and dashboard as a whole look good on various devices:<ul id="1f2b9240-1035-80ad-bd0e-df962d20056b" class="bulleted-list"><li style="list-style-type:circle">We rely on Vega-Lite’s responsive width (using container/bounded size) so charts resize to their parent div.</li></ul><ul id="1f2b9240-1035-8063-8496-e426f1d9e933" class="bulleted-list"><li style="list-style-type:circle">The UI will possibly use a fluid grid. If a user has multiple charts in one dashboard, we can implement a drag-and-drop grid layout (using a library like Gridstack or just CSS grid with reposition). But static positioning might suffice if we simply stack charts vertically in the order they were created or allow simple side-by-side for two charts.</li></ul><ul id="1f2b9240-1035-80b7-b60e-f9e18f4bbb99" class="bulleted-list"><li style="list-style-type:circle">The text (titles, axis labels) should scale or wrap on small screens. Vega-Lite provides some control (like label angle, skipping labels if too crowded). We might fine-tune the spec for small widths (e.g. rotate x-axis labels 45° if long dates).</li></ul></li></ul><p id="1f2b9240-1035-805d-a66d-c3fdf9cd1071" class="">In essence, the visualization layer tries to <strong>mimic a data analyst’s choice of chart</strong>. By automating this, we provide users immediate insight without requiring them to manually pick chart types. And by using a declarative tool like Vega-Lite, we make it easier to maintain and extend the charting capabilities (for example, adding a new chart type like a heatmap later if a query returns matrix-like data).</p><h2 id="1f2b9240-1035-808a-bd67-d11ce3c2cefa" class=""><strong>Saving and Sharing Dashboards</strong></h2><p id="1f2b9240-1035-808a-92f1-fdd2bf70b906" class="">A key feature of SolViz Studio is allowing users to save their charts and even compile them into shareable dashboards. We outline how users can preserve their work and embed it elsewhere:</p><ul id="1f2b9240-1035-8051-92ff-cef6199c17bd" class="bulleted-list"><li style="list-style-type:disc"><strong>Saving a Chart:</strong> When a user creates a visualization (from a query), they can click “Save”. This triggers the backend to store the chart configuration in a database (or a static JSON file if simplicity is preferred). The chart configuration includes:<ul id="1f2b9240-1035-8040-9cb1-ef2248166b67" class="bulleted-list"><li style="list-style-type:circle">The <strong>natural language query</strong> the user asked (for reference).</li></ul><ul id="1f2b9240-1035-8092-b364-d6b4d5716008" class="bulleted-list"><li style="list-style-type:circle">The chosen <strong>provider and query</strong> that was run (for transparency and reproducibility).</li></ul><ul id="1f2b9240-1035-80d9-ba0e-cf0177faf9e4" class="bulleted-list"><li style="list-style-type:circle">The <strong>result data</strong> or a reference to it. We have to decide whether to store the actual data or not. For smaller result sets, storing the JSON data along with the chart spec is fine (ensures the snapshot doesn’t change). For large results, we might re-run the query on load – but that could lead to different data later. Likely we cache the essential data at save time.</li></ul><ul id="1f2b9240-1035-8048-8bf9-fb280731d539" class="bulleted-list"><li style="list-style-type:circle">The <strong>Vega-Lite spec</strong> or the parameters needed to regenerate it.</li></ul><ul id="1f2b9240-1035-80a5-8447-eff9eae16b4f" class="bulleted-list"><li style="list-style-type:circle">Metadata like chart title, description (the user might add a custom title/comment before saving).</li></ul><p id="1f2b9240-1035-8016-ac28-d0b502c7a8e8" class="">Each saved chart gets a unique ID (and perhaps a slug). We expose a URL like <code><strong>/chart/&lt;id&gt;</strong></code> that anyone can use to view the chart. That page would fetch the saved config and render the chart.</p></li></ul><ul id="1f2b9240-1035-80eb-8e0c-e1f29d3f7420" class="bulleted-list"><li style="list-style-type:disc"><strong>Dashboards (Multiple Charts):</strong> Users should be able to arrange multiple saved charts into a dashboard view. A dashboard could simply be a collection of chart IDs with an arrangement. For a first version, we might skip complex layout and just list charts vertically. Later, we can allow a grid layout customization. The <strong>static dashboard generation</strong> means we can actually produce a single HTML page that contains all the charts and their data, so that it can be easily shared (similar to how Dune or Flipside share links to dashboards).<p id="1f2b9240-1035-80fb-9d68-d7744ad222f5" class="">For example, after creating 3 charts, a user creates a dashboard, adds those charts, and clicks “Publish Dashboard”. We then either:</p><ul id="1f2b9240-1035-806e-b9e1-ef5dd999b79f" class="bulleted-list"><li style="list-style-type:circle">Generate a static HTML file that includes Vega embed and the chart specs (which could be hosted on IPFS or our servers), or</li></ul><ul id="1f2b9240-1035-80a9-8475-d8689bf576d9" class="bulleted-list"><li style="list-style-type:circle">Provide a dynamic route on our app (like <code><strong>/dashboard/&lt;id&gt;</strong></code>) that loads the charts from the DB. The static approach is interesting because it could be then hosted anywhere (even the user could take the HTML and host themselves).</li></ul><p id="1f2b9240-1035-803d-a016-e65f50484806" class="">Given the user’s request, “static dashboard generation” likely implies the dashboard can be viewed by others without needing them to log in or run queries – essentially a <strong>snapshot</strong>.</p></li></ul><ul id="1f2b9240-1035-801f-b7b5-c8523b71f9d2" class="bulleted-list"><li style="list-style-type:disc"><strong>Sharing and Embedding:</strong><ul id="1f2b9240-1035-80f0-895a-e1aafc9d289e" class="bulleted-list"><li style="list-style-type:circle">We will support a <strong>shareable link</strong> for any saved chart or dashboard. Anyone with the link can view the visualization (read-only). This encourages users to share their findings on social media or in articles.</li></ul><ul id="1f2b9240-1035-8035-92db-f331d1907de9" class="bulleted-list"><li style="list-style-type:circle">For embedding in Notion: Notion’s embed block might allow embedding our shareable link. We should ensure our pages use https and have the appropriate headers to allow iframing. If Notion blocks it, the fallback is inserting an image or GIF.</li></ul><ul id="1f2b9240-1035-8079-9886-d64c0b80601b" class="bulleted-list"><li style="list-style-type:circle">For Medium: as noted, an image is the likely format. We might add a one-click “Export to Medium” which simply downloads the image and copies a caption to clipboard (the user still manually inserts it into a Medium story).</li></ul></li></ul><ul id="1f2b9240-1035-80f2-80cc-e7b37e573c77" class="bulleted-list"><li style="list-style-type:disc"><strong>Versioning and Updates:</strong> If the underlying data changes and users want an <em>auto-updating</em> dashboard (like always show last 7 days data updated daily), we could integrate that by <strong>re-running queries on a schedule</strong>. However, this complicates the “static” nature. Possibly we offer two modes: <em>snapshot</em> vs <em>live</em>. A snapshot dashboard doesn’t change (data is frozen at save time). A live dashboard would re-run queries whenever opened – but that requires using API credits each time. Given many users will prefer consistency when sharing analysis (so others see the same numbers they saw), we default to snapshotting data. Advanced users might refresh a chart manually and save a new version.</li></ul><ul id="1f2b9240-1035-80b7-a82c-f72a5fdbb8f1" class="bulleted-list"><li style="list-style-type:disc"><strong>Real-world Integration Patterns:</strong> We take inspiration from existing platforms:<ul id="1f2b9240-1035-80e4-91af-d0e634bea0a3" class="bulleted-list"><li style="list-style-type:circle"><em>Dune:</em> Users create dashboards composed of visualizations from queries. We mimic this by allowing multiple charts on a page, and like Dune we provide a share link. We can cite that Dune’s model is to let people fork dashboards or queries; we might implement a “Clone chart” feature to let someone else use a saved chart as a starting point.</li></ul><ul id="1f2b9240-1035-80bb-8734-d9c9dc2faca4" class="bulleted-list"><li style="list-style-type:circle"><em>Flipside Studio:</em> Flipside has a concept of collections and dashboards where each chart is tied to a query<a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=After%20writing%20your%20query%20and,and%20your%20dashboard%20is%20live">medium.com</a><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=Create%20a%20query%20and%20name,SQL%20query%20as%20shown%20below">medium.com</a>. They let users publish dashboards with auto-updates. We will likely keep it simpler (manual save) at first.</li></ul><ul id="1f2b9240-1035-8026-b5dc-d65bd5f2ad81" class="bulleted-list"><li style="list-style-type:circle"><em>Notion integration:</em> Some tools provide embedded iframes with live charts (e.g., an ObservableHQ notebook or a Data Studio report can be embedded). If we host a public page for the chart, a Notion user can embed it by just pasting the link (Notion will create an embed frame if it recognizes the content). We’ll test this and document for users.</li></ul></li></ul><p id="1f2b9240-1035-803d-b130-d6e31351404c" class="">In summary, SolViz Studio will not only allow interactive query and visualization in-app, but also make it easy to preserve and disseminate insights. By generating standalone visualizations and dashboards, it empowers users to use Solana data insights in blogs, reports, or social media. The combination of an LLM for query generation, multiple Solana data sources for comprehensive coverage, and Vega-Lite for polished visuals results in a powerful tool for the community to explore and share Solana on-chain data.</p><p id="1f2b9240-1035-80ac-83a9-c77500faa2bb" class=""><strong>Best Practices and Future Considerations:</strong> Throughout the design, we’ve incorporated best practices from real-world examples – using streaming APIs for low-latency needs<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=However%2C%20real,for%20historical%20data%20use%20cases">helius.dev</a>, SQL warehouses for heavy analytics<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Flipside%20and%20Dune%20provide%20SQL,dealing%20with%20raw%20RPC%20calls">helius.dev</a>, structuring LLM outputs with function calls for reliability, and caching schema info for the model<a href="https://www.uber.com/blog/query-gpt/#:~:text=QueryGPT%20uses%20large%20language%20models,by%20the%20user%20as%20input">uber.com</a>. The Solana ChatGPT plugin provided a reference for multi-source integration (it combined RPC, HelloMoon, and Hyperspace APIs to answer questions)<a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetTotalValue%20">github.com</a><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=Endpoints%20for%20NFT%20discovery">github.com</a>, which validated our approach of switching providers per query type. As we implement SolViz Studio, we will continuously refine the prompts (possibly fine-tune on Solana-specific query examples) and expand our library of chart templates. With these in place, the end result will be a <strong>comprehensive, user-friendly platform</strong> for Solana analytics: ask a question, get the answer visualized – and share it with a click.</p><p id="1f2b9240-1035-80b8-9466-ff833b97faac" class=""><strong>Sources:</strong></p><ul id="1f2b9240-1035-8002-a51b-f99e4996024b" class="bulleted-list"><li style="list-style-type:disc">Solana ChatGPT Plugin – multi-API design (Solana RPC, HelloMoon, Hyperspace)<a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetTotalValue%20">github.com</a><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=Endpoints%20for%20NFT%20discovery">github.com</a></li></ul><ul id="1f2b9240-1035-807d-bceb-f141a104b939" class="bulleted-list"><li style="list-style-type:disc">Bitquery Solana API – GraphQL for balances, NFTs, staking, and real-time data<a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Staking%20Rewards">bitquery.io</a><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Real%20Time%20Solana%20Streams%20">bitquery.io</a></li></ul><ul id="1f2b9240-1035-8024-aed7-decb573566d5" class="bulleted-list"><li style="list-style-type:disc">Helius Platform – Solana-specific token/NFT APIs and real-time streams<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Webhooks%2C%20WebSocket%20%26%20Real">helius.dev</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=However%2C%20real,for%20historical%20data%20use%20cases">helius.dev</a></li></ul><ul id="1f2b9240-1035-805e-8889-db9fe17dc030" class="bulleted-list"><li style="list-style-type:disc">Helius Blog on Solana Data Tools – contrasts real-time APIs vs. historical SQL databases<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Flipside%20and%20Dune%20provide%20SQL,dealing%20with%20raw%20RPC%20calls">helius.dev</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=For%20example%2C%20Flipside%20has%20approximately,minutes%2C%20depending%20on%20the%20dataset">helius.dev</a></li></ul><ul id="1f2b9240-1035-8041-875a-cb851b7e57dd" class="bulleted-list"><li style="list-style-type:disc">Flipside Crypto – Solana SQL schema and example query (transactions and users)<a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=The%20data%20is%20organized%20in,data%20under%20the%20core%20table">medium.com</a><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20COUNT,INTERVAL%20%271%20Month%27%20AND%20SUCCEEDED">medium.com</a></li></ul><ul id="1f2b9240-1035-805c-97f4-c116886ce523" class="bulleted-list"><li style="list-style-type:disc">Dune Analytics – Solana datasets and query model (community-curated, pay-as-you-go)<a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Dune">helius.dev</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Flipside%20Crypto">helius.dev</a></li></ul><ul id="1f2b9240-1035-80a9-b225-c6647ff57f61" class="bulleted-list"><li style="list-style-type:disc">OpenAI Function Calling Example – using structured output for NL to SQL conversion<a href="https://alex000kim.com/posts/2024-05-05-function-calling-experiments/#:~:text=There%20will%20be%20two%20function,calling%20examples">alex000kim.com</a></li></ul><ul id="1f2b9240-1035-8044-aed3-df86b46ffe30" class="bulleted-list"><li style="list-style-type:disc">Uber’s QueryGPT Blog – notes on using LLM with schema retrieval for SQL generation<a href="https://www.uber.com/blog/query-gpt/#:~:text=QueryGPT%20uses%20large%20language%20models,by%20the%20user%20as%20input">uber.com</a><a href="https://www.uber.com/blog/query-gpt/#:~:text=vectorize%20it%20and%20do%20a,and%207%20relevant%20SQL%20samples">uber.com</a></li></ul><p id="1f2b9240-1035-8052-a074-c2c8bf39e6e1" class=""><strong>Citations</strong></p><p id="1f2b9240-1035-80fc-a60c-cd48a6261f53" class=""><strong>Citations</strong></p><p id="1f2b9240-1035-80b5-894b-d8c9265723b7" class=""><strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Flipside%20and%20Dune%20provide%20SQL,dealing%20with%20raw%20RPC%20calls">Analyzing Solana On-chain Data: Tools &amp; Dashboards</a></strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Flipside%20and%20Dune%20provide%20SQL,dealing%20with%20raw%20RPC%20calls">https://www.helius.dev/blog/solana-data-tools</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=For%20example%2C%20Flipside%20has%20approximately,minutes%2C%20depending%20on%20the%20dataset"><br/><br/></a><strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=For%20example%2C%20Flipside%20has%20approximately,minutes%2C%20depending%20on%20the%20dataset">Analyzing Solana On-chain Data: Tools &amp; Dashboards</a></strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=For%20example%2C%20Flipside%20has%20approximately,minutes%2C%20depending%20on%20the%20dataset">https://www.helius.dev/blog/solana-data-tools</a><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Real%20Time%20Solana%20Streams%20"><br/><br/></a><strong><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Real%20Time%20Solana%20Streams%20">Solana API - Tokens, NFTs, Balances &amp; DEX Trades - Bitquery</a></strong><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Real%20Time%20Solana%20Streams%20">https://bitquery.io/blockchains/solana-blockchain-api</a><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=The%20Solana%20Transaction%20API%20is,security%20on%20the%20Solana%20network"><br/><br/></a><strong><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=The%20Solana%20Transaction%20API%20is,security%20on%20the%20Solana%20network">Solana API - Tokens, NFTs, Balances &amp; DEX Trades - Bitquery</a></strong><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=The%20Solana%20Transaction%20API%20is,security%20on%20the%20Solana%20network">https://bitquery.io/blockchains/solana-blockchain-api</a><a href="https://www.helius.dev/docs/das/get-nfts#:~:text=Learn%20how%20to%20retrieve%20and,data%20using%20Helius%20DAS%20API"><br/><br/></a><strong><a href="https://www.helius.dev/docs/das/get-nfts#:~:text=Learn%20how%20to%20retrieve%20and,data%20using%20Helius%20DAS%20API">How to get NFTs - Helius</a></strong><a href="https://www.helius.dev/docs/das/get-nfts#:~:text=Learn%20how%20to%20retrieve%20and,data%20using%20Helius%20DAS%20API">https://www.helius.dev/docs/das/get-nfts</a><a href="https://www.helius.dev/docs/das/get-nfts#:~:text=const%20response%20%3D%20await%20fetch%28%27https%3A%2F%2Fmainnet.helius,1"><br/><br/></a><strong><a href="https://www.helius.dev/docs/das/get-nfts#:~:text=const%20response%20%3D%20await%20fetch%28%27https%3A%2F%2Fmainnet.helius,1">How to get NFTs - Helius</a></strong><a href="https://www.helius.dev/docs/das/get-nfts#:~:text=const%20response%20%3D%20await%20fetch%28%27https%3A%2F%2Fmainnet.helius,1">https://www.helius.dev/docs/das/get-nfts</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Webhooks%2C%20WebSocket%20%26%20Real"><br/><br/></a><strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Webhooks%2C%20WebSocket%20%26%20Real">Analyzing Solana On-chain Data: Tools &amp; Dashboards</a></strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Webhooks%2C%20WebSocket%20%26%20Real">https://www.helius.dev/blog/solana-data-tools</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=However%2C%20real,for%20historical%20data%20use%20cases"><br/><br/></a><strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=However%2C%20real,for%20historical%20data%20use%20cases">Analyzing Solana On-chain Data: Tools &amp; Dashboards</a></strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=However%2C%20real,for%20historical%20data%20use%20cases">https://www.helius.dev/blog/solana-data-tools</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Flipside%20Crypto"><br/><br/></a><strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Flipside%20Crypto">Analyzing Solana On-chain Data: Tools &amp; Dashboards</a></strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Flipside%20Crypto">https://www.helius.dev/blog/solana-data-tools</a><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=The%20data%20is%20organized%20in,data%20under%20the%20core%20table"><br/><br/></a><strong><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=The%20data%20is%20organized%20in,data%20under%20the%20core%20table">Web3 Analytics For Solana Using Flipside Crypto | by Klurdy Studios | Medium</a></strong><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=The%20data%20is%20organized%20in,data%20under%20the%20core%20table">https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c</a><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20DATE_TRUNC,0%5D%29%29%20AS%20usrs"><br/><br/></a><strong><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20DATE_TRUNC,0%5D%29%29%20AS%20usrs">Web3 Analytics For Solana Using Flipside Crypto | by Klurdy Studios | Medium</a></strong><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20DATE_TRUNC,0%5D%29%29%20AS%20usrs">https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Both%20platforms%20index%20and%20structure,methods%20and%20data%20streaming%20tools"><br/><br/></a><strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Both%20platforms%20index%20and%20structure,methods%20and%20data%20streaming%20tools">Analyzing Solana On-chain Data: Tools &amp; Dashboards</a></strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Both%20platforms%20index%20and%20structure,methods%20and%20data%20streaming%20tools">https://www.helius.dev/blog/solana-data-tools</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Dune"><br/><br/></a><strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Dune">Analyzing Solana On-chain Data: Tools &amp; Dashboards</a></strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Dune">https://www.helius.dev/blog/solana-data-tools</a><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetBalance%20"><br/><br/></a><strong><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetBalance%20">GitHub - solana-labs/chatgpt-plugin</a></strong><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetBalance%20">https://github.com/solana-labs/chatgpt-plugin</a><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetTransaction%20"><br/><br/></a><strong><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetTransaction%20">GitHub - solana-labs/chatgpt-plugin</a></strong><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetTransaction%20">https://github.com/solana-labs/chatgpt-plugin</a><a href="https://www.helius.dev/docs/das/get-nfts#:~:text=method%3A%20,J1S9H3QjnRtBbbuD4HjPV6RpRhwuk4zKbxsnCHuTgh9w"><br/><br/></a><strong><a href="https://www.helius.dev/docs/das/get-nfts#:~:text=method%3A%20,J1S9H3QjnRtBbbuD4HjPV6RpRhwuk4zKbxsnCHuTgh9w">How to get NFTs - Helius</a></strong><a href="https://www.helius.dev/docs/das/get-nfts#:~:text=method%3A%20,J1S9H3QjnRtBbbuD4HjPV6RpRhwuk4zKbxsnCHuTgh9w">https://www.helius.dev/docs/das/get-nfts</a><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=NFTs"><br/><br/></a><strong><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=NFTs">Solana API - Tokens, NFTs, Balances &amp; DEX Trades - Bitquery</a></strong><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=NFTs">https://bitquery.io/blockchains/solana-blockchain-api</a><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Solana%20DEX%20Trades"><br/><br/></a><strong><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Solana%20DEX%20Trades">Solana API - Tokens, NFTs, Balances &amp; DEX Trades - Bitquery</a></strong><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Solana%20DEX%20Trades">https://bitquery.io/blockchains/solana-blockchain-api</a><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetAssetsByOwner%20"><br/><br/></a><strong><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetAssetsByOwner%20">GitHub - solana-labs/chatgpt-plugin</a></strong><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetAssetsByOwner%20">https://github.com/solana-labs/chatgpt-plugin</a><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20marketplace%2C%20COUNT,fact_nft_sales"><br/><br/></a><strong><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20marketplace%2C%20COUNT,fact_nft_sales">Web3 Analytics For Solana Using Flipside Crypto | by Klurdy Studios | Medium</a></strong><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20marketplace%2C%20COUNT,fact_nft_sales">https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c</a><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Staking%20Rewards"><br/><br/></a><strong><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Staking%20Rewards">Solana API - Tokens, NFTs, Balances &amp; DEX Trades - Bitquery</a></strong><a href="https://bitquery.io/blockchains/solana-blockchain-api#:~:text=Staking%20Rewards">https://bitquery.io/blockchains/solana-blockchain-api</a><a href="https://medium.com/@thelitoshi/visualizing-the-solana-staking-ecosystem-bc59d0a0a3d7#:~:text=Key%20Metrics"><br/><br/></a><strong><a href="https://medium.com/@thelitoshi/visualizing-the-solana-staking-ecosystem-bc59d0a0a3d7#:~:text=Key%20Metrics">Visualizing The Solana Staking Ecosystem | by Litoshi | Apr, 2025 | Medium</a></strong><a href="https://medium.com/@thelitoshi/visualizing-the-solana-staking-ecosystem-bc59d0a0a3d7#:~:text=Key%20Metrics">https://medium.com/@thelitoshi/visualizing-the-solana-staking-ecosystem-bc59d0a0a3d7</a><a href="https://medium.com/@thelitoshi/visualizing-the-solana-staking-ecosystem-bc59d0a0a3d7#:~:text=2.%20Sol%20Staked%3A%20389.095m%20SOL,network%20will%20become%20vulnerable%20to"><br/><br/></a><strong><a href="https://medium.com/@thelitoshi/visualizing-the-solana-staking-ecosystem-bc59d0a0a3d7#:~:text=2.%20Sol%20Staked%3A%20389.095m%20SOL,network%20will%20become%20vulnerable%20to">Visualizing The Solana Staking Ecosystem | by Litoshi | Apr, 2025 | Medium</a></strong><a href="https://medium.com/@thelitoshi/visualizing-the-solana-staking-ecosystem-bc59d0a0a3d7#:~:text=2.%20Sol%20Staked%3A%20389.095m%20SOL,network%20will%20become%20vulnerable%20to">https://medium.com/@thelitoshi/visualizing-the-solana-staking-ecosystem-bc59d0a0a3d7</a><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=query%20MyQuery%20,BalanceUpdate"><br/><br/></a><strong><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=query%20MyQuery%20,BalanceUpdate">Solana Balance &amp; Balance Updates API | Blockchain Data API (V2)</a></strong><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=query%20MyQuery%20,BalanceUpdate">https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/</a><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=Name%20MintAddress%20Symbol%20,"><br/><br/></a><strong><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=Name%20MintAddress%20Symbol%20,">Solana Balance &amp; Balance Updates API | Blockchain Data API (V2)</a></strong><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=Name%20MintAddress%20Symbol%20,">https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/</a><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20COUNT,INTERVAL%20%271%20Month%27%20AND%20SUCCEEDED"><br/><br/></a><strong><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20COUNT,INTERVAL%20%271%20Month%27%20AND%20SUCCEEDED">Web3 Analytics For Solana Using Flipside Crypto | by Klurdy Studios | Medium</a></strong><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=SELECT%20COUNT,INTERVAL%20%271%20Month%27%20AND%20SUCCEEDED">https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Geyser%20streams%20work%20by%20directly,access%20to%20new%20blockchain%20events"><br/><br/></a><strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Geyser%20streams%20work%20by%20directly,access%20to%20new%20blockchain%20events">Analyzing Solana On-chain Data: Tools &amp; Dashboards</a></strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=Geyser%20streams%20work%20by%20directly,access%20to%20new%20blockchain%20events">https://www.helius.dev/blog/solana-data-tools</a><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=query%20MyQuery%20,Balance%3A%20PostBalance%28maximum%3A%20Block_Slot"><br/><br/></a><strong><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=query%20MyQuery%20,Balance%3A%20PostBalance%28maximum%3A%20Block_Slot">Solana Balance &amp; Balance Updates API | Blockchain Data API (V2)</a></strong><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=query%20MyQuery%20,Balance%3A%20PostBalance%28maximum%3A%20Block_Slot">https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/</a><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=Name%20Symbol%20,"><br/><br/></a><strong><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=Name%20Symbol%20,">Solana Balance &amp; Balance Updates API | Blockchain Data API (V2)</a></strong><a href="https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/#:~:text=Name%20Symbol%20,">https://docs.bitquery.io/docs/examples/Solana/solana-balance-updates/</a><a href="https://www.helius.dev/solana-token-apis#:~:text=Wallets"><br/><br/></a><strong><a href="https://www.helius.dev/solana-token-apis#:~:text=Wallets">Solana Token APIs - Metadata, Balances, History, and More</a></strong><a href="https://www.helius.dev/solana-token-apis#:~:text=Wallets">https://www.helius.dev/solana-token-apis</a><a href="https://www.helius.dev/solana-token-apis#:~:text=Portfolio%20trackers"><br/><br/></a><strong><a href="https://www.helius.dev/solana-token-apis#:~:text=Portfolio%20trackers">Solana Token APIs - Metadata, Balances, History, and More</a></strong><a href="https://www.helius.dev/solana-token-apis#:~:text=Portfolio%20trackers">https://www.helius.dev/solana-token-apis</a><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetTotalValue%20"><br/><br/></a><strong><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetTotalValue%20">GitHub - solana-labs/chatgpt-plugin</a></strong><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=%2FgetTotalValue%20">https://github.com/solana-labs/chatgpt-plugin</a><a href="https://docs.flipsidecrypto.xyz/data/data-products/api-sdk-developers/get-started/run-your-first-query#:~:text=from%20flipside%20import%20Flipside"><br/><br/></a><strong><a href="https://docs.flipsidecrypto.xyz/data/data-products/api-sdk-developers/get-started/run-your-first-query#:~:text=from%20flipside%20import%20Flipside">Run A Query | Flipside Docs</a></strong><a href="https://docs.flipsidecrypto.xyz/data/data-products/api-sdk-developers/get-started/run-your-first-query#:~:text=from%20flipside%20import%20Flipside">https://docs.flipsidecrypto.xyz/data/data-products/api-sdk-developers/get-started/run-your-first-query</a><a href="https://docs.flipsidecrypto.xyz/data/data-products/api-sdk-developers/get-started/run-your-first-query#:~:text="><br/><br/></a><strong><a href="https://docs.flipsidecrypto.xyz/data/data-products/api-sdk-developers/get-started/run-your-first-query#:~:text=">Run A Query | Flipside Docs</a></strong><a href="https://docs.flipsidecrypto.xyz/data/data-products/api-sdk-developers/get-started/run-your-first-query#:~:text=">https://docs.flipsidecrypto.xyz/data/data-products/api-sdk-developers/get-started/run-your-first-query</a><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=Java"><br/><br/></a><strong><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=Java">Execute Query - Dune Docs</a></strong><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=Java">https://docs.dune.com/api-reference/executions/endpoint/execute-query</a><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=query_id"><br/><br/></a><strong><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=query_id">Execute Query - Dune Docs</a></strong><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=query_id">https://docs.dune.com/api-reference/executions/endpoint/execute-query</a><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=Execute%20query%20and%20get%20result,in%20one%20call"><br/><br/></a><strong><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=Execute%20query%20and%20get%20result,in%20one%20call">Execute Query - Dune Docs</a></strong><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=Execute%20query%20and%20get%20result,in%20one%20call">https://docs.dune.com/api-reference/executions/endpoint/execute-query</a><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=,example%20we%20print%20the%20rows"><br/><br/></a><strong><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=,example%20we%20print%20the%20rows">Execute Query - Dune Docs</a></strong><a href="https://docs.dune.com/api-reference/executions/endpoint/execute-query#:~:text=,example%20we%20print%20the%20rows">https://docs.dune.com/api-reference/executions/endpoint/execute-query</a><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=analytical%20use%20cases,methods%20and%20data%20streaming%20tools"><br/><br/></a><strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=analytical%20use%20cases,methods%20and%20data%20streaming%20tools">Analyzing Solana On-chain Data: Tools &amp; Dashboards</a></strong><a href="https://www.helius.dev/blog/solana-data-tools#:~:text=analytical%20use%20cases,methods%20and%20data%20streaming%20tools">https://www.helius.dev/blog/solana-data-tools</a><a href="https://alex000kim.com/posts/2024-05-05-function-calling-experiments/#:~:text=There%20will%20be%20two%20function,calling%20examples"><br/><br/></a><strong><a href="https://alex000kim.com/posts/2024-05-05-function-calling-experiments/#:~:text=There%20will%20be%20two%20function,calling%20examples">Experiments with OpenAI&#x27;s Function Calling | Alex Kim&#x27;s blog</a></strong><a href="https://alex000kim.com/posts/2024-05-05-function-calling-experiments/#:~:text=There%20will%20be%20two%20function,calling%20examples">https://alex000kim.com/posts/2024-05-05-function-calling-experiments/</a><a href="https://www.uber.com/blog/query-gpt/#:~:text=QueryGPT%20uses%20large%20language%20models,by%20the%20user%20as%20input"><br/><br/></a><strong><a href="https://www.uber.com/blog/query-gpt/#:~:text=QueryGPT%20uses%20large%20language%20models,by%20the%20user%20as%20input">QueryGPT - Natural Language to SQL using Generative AI | Uber Blog</a></strong><a href="https://www.uber.com/blog/query-gpt/#:~:text=QueryGPT%20uses%20large%20language%20models,by%20the%20user%20as%20input">https://www.uber.com/blog/query-gpt/</a><a href="https://www.uber.com/blog/query-gpt/#:~:text=vectorize%20it%20and%20do%20a,and%207%20relevant%20SQL%20samples"><br/><br/></a><strong><a href="https://www.uber.com/blog/query-gpt/#:~:text=vectorize%20it%20and%20do%20a,and%207%20relevant%20SQL%20samples">QueryGPT - Natural Language to SQL using Generative AI | Uber Blog</a></strong><a href="https://www.uber.com/blog/query-gpt/#:~:text=vectorize%20it%20and%20do%20a,and%207%20relevant%20SQL%20samples">https://www.uber.com/blog/query-gpt/</a><a href="https://alex000kim.com/posts/2024-05-05-function-calling-experiments/#:~:text=1.%20A%20simple%20one,natural%20language%20query%20into%20SQL"><br/><br/></a><strong><a href="https://alex000kim.com/posts/2024-05-05-function-calling-experiments/#:~:text=1.%20A%20simple%20one,natural%20language%20query%20into%20SQL">Experiments with OpenAI&#x27;s Function Calling | Alex Kim&#x27;s blog</a></strong><a href="https://alex000kim.com/posts/2024-05-05-function-calling-experiments/#:~:text=1.%20A%20simple%20one,natural%20language%20query%20into%20SQL">https://alex000kim.com/posts/2024-05-05-function-calling-experiments/<br/><br/></a><strong><a href="https://alex000kim.com/posts/2024-05-05-function-calling-experiments/#:~:text=1.%20A%20simple%20one,natural%20language%20query%20into%20SQL">Experiments with OpenAI&#x27;s Function Calling | Alex Kim&#x27;s blog</a></strong><a href="https://alex000kim.com/posts/2024-05-05-function-calling-experiments/#:~:text=1.%20A%20simple%20one,natural%20language%20query%20into%20SQL">https://alex000kim.com/posts/2024-05-05-function-calling-experiments/</a><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=After%20writing%20your%20query%20and,and%20your%20dashboard%20is%20live"><br/><br/></a><strong><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=After%20writing%20your%20query%20and,and%20your%20dashboard%20is%20live">Web3 Analytics For Solana Using Flipside Crypto | by Klurdy Studios | Medium</a></strong><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=After%20writing%20your%20query%20and,and%20your%20dashboard%20is%20live">https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c</a><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=Create%20a%20query%20and%20name,SQL%20query%20as%20shown%20below"><br/><br/></a><strong><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=Create%20a%20query%20and%20name,SQL%20query%20as%20shown%20below">Web3 Analytics For Solana Using Flipside Crypto | by Klurdy Studios | Medium</a></strong><a href="https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c#:~:text=Create%20a%20query%20and%20name,SQL%20query%20as%20shown%20below">https://medium.com/@klurdy/web3-analytics-for-solana-using-flipside-crypto-07ad6448c57c</a><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=Endpoints%20for%20NFT%20discovery"><br/><br/></a><strong><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=Endpoints%20for%20NFT%20discovery">GitHub - solana-labs/chatgpt-plugin</a></strong><a href="https://github.com/solana-labs/chatgpt-plugin#:~:text=Endpoints%20for%20NFT%20discovery">https://github.com/solana-labs/chatgpt-plugin</a></p><p id="1f2b9240-1035-80be-afce-e6d904d524e1" class="">
+</p></div></article><span class="sans" style="font-size:14px;padding-top:2em"></span></body></html>
