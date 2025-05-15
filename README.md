@@ -23,13 +23,65 @@ SolViz Studio consists of two main components:
 
 ## Getting Started
 
+For a complete step-by-step guide, see [GETTING-STARTED.md](GETTING-STARTED.md).
+
+### Quick Start
+
+Use the first-run script to set up and run the project:
+
+```bash
+# Complete setup and run both frontend and backend
+./first-run.sh
+
+# Setup and run just the frontend
+./first-run.sh frontend
+
+# Setup and run just the backend
+./first-run.sh backend
+
+# Run with Docker
+./first-run.sh docker
+
+# Quick start just the frontend (after initial setup)
+./start-frontend.sh
+```
+
+This script will:
+- Check for required tools (Node.js, Python, PostgreSQL)
+- Set up environment files
+- Install dependencies (using compatible versions)
+- Configure the database (when running backend)
+- Start the requested services
+
+### Known Issues
+
+- There's a compatibility conflict between React 19 and react-vega (which requires React ≤18)
+- The installation uses `--legacy-peer-deps` to work around this issue
+- Babel configuration is not compatible with Turbopack, so we use standard Next.js dev mode
+- If you encounter problems, consider:
+  1. Downgrading React to version 18
+  2. Replacing react-vega with a React 19 compatible visualization library
+
 ### Prerequisites
 
-- Python 3.9+
+- Python 3.10+
 - Node.js 18.0+
-- PostgreSQL
+- PostgreSQL 15+
+- Docker & Docker Compose (optional, for containerized setup)
 
-### Setting Up the Backend
+### Docker Setup
+
+1. Make sure Docker and Docker Compose are installed
+2. Create `.env` file with required API keys
+3. Run the following command:
+
+```bash
+docker-compose up --build
+```
+
+### Manual Setup
+
+#### Setting Up the Backend
 
 1. Create and activate a virtual environment:
 
@@ -48,7 +100,8 @@ pip install -r requirements.txt
 3. Set up environment variables:
 
 ```bash
-cp .env.example .env
+# Create .env file with your configuration
+touch .env
 # Edit .env with your configuration
 ```
 

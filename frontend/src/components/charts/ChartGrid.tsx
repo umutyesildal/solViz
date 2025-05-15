@@ -48,9 +48,9 @@ export default function ChartGrid({
 
   return (
     <div>
-      <div className="pb-5 border-b border-gray-200">
-        <h3 className="text-lg leading-6 font-medium text-gray-900">{title}</h3>
-        <p className="mt-2 max-w-4xl text-sm text-gray-500">
+      <div className="pb-6 border-b border-dark-300/30">
+        <h3 className="text-xl leading-6 font-medium text-white">{title}</h3>
+        <p className="mt-2 max-w-4xl text-sm text-slate-400">
           {showPublic
             ? "Explore charts shared by the SolViz Studio community."
             : "View and manage your saved charts and visualizations."}
@@ -59,13 +59,13 @@ export default function ChartGrid({
 
       {isLoading && (
         <div className="my-8 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-primary-500"></div>
-          <p className="mt-2 text-sm text-gray-500">Loading charts...</p>
+          <div className="inline-block animate-spin rounded-full h-10 w-10 border-4 border-dark-400 border-t-primary-500"></div>
+          <p className="mt-3 text-sm text-slate-400">Loading charts...</p>
         </div>
       )}
 
       {error && (
-        <div className="my-4 bg-red-50 border border-red-200 p-4 rounded-md">
+        <div className="my-5 glass-card bg-red-900/20 border border-red-800/30 p-4 rounded-lg">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg
@@ -81,37 +81,37 @@ export default function ChartGrid({
               </svg>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-red-800">{error}</p>
+              <p className="text-sm font-medium text-red-300">{error}</p>
             </div>
           </div>
         </div>
       )}
 
       {!isLoading && !error && displayedCharts.length === 0 && (
-        <div className="my-8 text-center py-12 bg-gray-50 rounded-lg">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-            />
-          </svg>
-          <p className="mt-2 text-sm font-medium text-gray-900">
-            {emptyMessage}
-          </p>
+        <div className="my-10 text-center py-16 glass-card backdrop-blur-md rounded-lg border border-dark-300/30">
+          <div className="bg-gradient-to-br from-primary-600/10 to-primary-800/10 p-4 rounded-full inline-flex">
+            <svg
+              className="mx-auto h-14 w-14 text-primary-400/80"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+              />
+            </svg>
+          </div>
+          <p className="mt-4 text-lg font-medium text-white">{emptyMessage}</p>
           {!showPublic && (
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-slate-400">
               Go to the{" "}
               <a
                 href="/query"
-                className="text-primary-600 hover:text-primary-800"
+                className="text-primary-400 hover:text-primary-300 transition-colors duration-200"
               >
                 Query page
               </a>{" "}

@@ -1,26 +1,104 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #121212;
+  --foreground: #ffffff;
+  --border: #333333;
+  --blue: #3b82f6;
+  --transition: 0.2s ease;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans, system-ui, sans-serif);
+    overflow-x: hidden;
+  }
+
+  /* Minimal scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #181818;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 0;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #444;
+  }
+
+  /* Text selection */
+  ::selection {
+    background: var(--blue);
+    color: white;
+  }
+
+  /* Focus outline */
+  *:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  .card {
+    border: 1px solid var(--border);
+    border-radius: 0;
+    transition: border-color var(--transition);
+  }
+
+  .btn {
+    border-radius: 0;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: background-color var(--transition),
+      border-color var(--transition);
+  }
+
+  .btn-primary {
+    background-color: var(--blue);
+    color: white;
+    border: 1px solid var(--blue);
+  }
+
+  .btn-primary:hover {
+    background-color: transparent;
+    color: var(--blue);
+  }
+
+  .btn-outline {
+    background-color: transparent;
+    color: white;
+    border: 1px solid var(--border);
+  }
+
+  .btn-outline:hover {
+    border-color: var(--blue);
+    color: var(--blue);
+  }
+}
+
+/* Responsive font size adjustments */
+@media (max-width: 640px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1536px) {
+  html {
+    font-size: 18px;
+  }
 }

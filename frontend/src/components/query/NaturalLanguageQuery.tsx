@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useQueryStore } from "@/store/query";
 import { useChartsStore } from "@/store/charts";
 import { VegaLite } from "react-vega";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import LoadingOverlay from "@/components/ui/LoadingOverlay";
 
 const providers = [
   { id: "flipside", name: "Flipside Crypto" },
@@ -52,8 +54,9 @@ export default function NaturalLanguageQuery() {
     e.preventDefault();
     try {
       await executeQuery();
-    } catch (error) {
+    } catch (err) {
       // Error is handled by the store and displayed in the UI
+      console.error("Query execution failed:", err);
     }
   };
 
@@ -77,22 +80,27 @@ export default function NaturalLanguageQuery() {
       setSaveMessage("Chart saved successfully!");
       setChartTitle("");
       setChartDescription("");
-    } catch (error: any) {
-      setSaveMessage(`Failed to save chart: ${error.message}`);
+    } catch (error: unknown) {
+      const err = error as Error;
+      setSaveMessage(`Failed to save chart: ${err.message}`);
+      console.error("Failed to save chart:", err);
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
-        <div className="md:grid md:grid-cols-3 md:gap-6">
+    <div className="space-y-8">
+      {/* Show loading overlay when saving a chart */}
+      <LoadingOverlay isVisible={isSaving} message="Saving your chart..." />
+
+      <div className="glass-card shadow-lg px-6 py-6 sm:rounded-lg sm:p-8">
+        <div className="md:grid md:grid-cols-3 md:gap-8">
           <div className="md:col-span-1">
-            <h3 className="text-lg font-medium text-gray-900">
+            <h3 className="text-lg font-medium gradient-text">
               Query in Natural Language
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-slate-400">
               Ask about Solana blockchain data in plain English. Our AI will
               convert your question to the appropriate query and fetch the data.
             </p>
@@ -103,7 +111,7 @@ export default function NaturalLanguageQuery() {
                 <div className="col-span-6">
                   <label
                     htmlFor="query"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-white"
                   >
                     Your Question
                   </label>
@@ -111,13 +119,13 @@ export default function NaturalLanguageQuery() {
                     id="query"
                     name="query"
                     rows={4}
-                    className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="mt-2 block w-full border border-dark-300/50 rounded-lg shadow-md py-3 px-4 bg-dark-700/50 text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-400 sm:text-sm"
                     placeholder="E.g., What was the daily transaction volume on Solana over the past week?"
                     value={naturalLanguageQuery}
                     onChange={handleQueryChange}
                     required
                   />
-                  <p className="mt-2 text-sm text-gray-500">
+                  <p className="mt-2 text-sm text-slate-400">
                     Be specific about the time period, metrics, and any
                     constraints.
                   </p>
@@ -126,14 +134,14 @@ export default function NaturalLanguageQuery() {
                 <div className="col-span-6 sm:col-span-3">
                   <label
                     htmlFor="provider"
-                    className="block text-sm font-medium text-gray-700"
+                    className="block text-sm font-medium text-white"
                   >
                     Data Provider
                   </label>
                   <select
                     id="provider"
                     name="provider"
-                    className="mt-1 block w-full bg-white border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="mt-2 block w-full bg-dark-700/50 text-white border border-dark-300/50 rounded-lg shadow-md py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-400 sm:text-sm"
                     value={provider}
                     onChange={handleProviderChange}
                   >
@@ -145,13 +153,34 @@ export default function NaturalLanguageQuery() {
                   </select>
                 </div>
 
-                <div className="col-span-6">
+                <div className="col-span-6 mt-2">
                   <button
                     type="submit"
-                    className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                    className="inline-flex justify-center items-center py-3 px-6 border border-blue-500 shadow-lg text-sm font-medium rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition-all duration-300 focus:outline-none w-full sm:w-auto"
                     disabled={isLoading || !naturalLanguageQuery}
                   >
-                    {isLoading ? "Processing..." : "Get Results"}
+                    {isLoading ? (
+                      <div className="flex items-center justify-center">
+                        <LoadingSpinner size="small" color="text-white" />
+                        <span className="ml-2">Processing query...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 mr-2"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span>Generate Visualization</span>
+                      </div>
+                    )}
                   </button>
                 </div>
               </div>
@@ -161,11 +190,11 @@ export default function NaturalLanguageQuery() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 p-4 rounded-md">
+        <div className="glass-card bg-red-900/20 border border-red-800/30 p-5 rounded-lg">
           <div className="flex">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-red-400"
+                className="h-6 w-6 text-red-400"
                 fill="currentColor"
                 viewBox="0 0 20 20"
               >
@@ -176,9 +205,9 @@ export default function NaturalLanguageQuery() {
                 />
               </svg>
             </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error</h3>
-              <div className="mt-2 text-sm text-red-700">
+            <div className="ml-4">
+              <h3 className="text-sm font-medium text-red-300">Error</h3>
+              <div className="mt-2 text-sm text-red-200">
                 <p>{error}</p>
               </div>
             </div>
@@ -187,40 +216,42 @@ export default function NaturalLanguageQuery() {
       )}
 
       {result && (
-        <div className="bg-white shadow px-4 py-5 sm:rounded-lg sm:p-6">
-          <div className="md:grid md:grid-cols-3 md:gap-6">
+        <div className="glass-card shadow-lg px-6 py-6 sm:rounded-lg sm:p-8">
+          <div className="md:grid md:grid-cols-3 md:gap-8">
             <div className="md:col-span-1">
-              <h3 className="text-lg font-medium text-gray-900">Results</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Here's the visualization based on your query. You can save this
-                chart to your dashboard.
+              <h3 className="text-lg font-medium gradient-text">Results</h3>
+              <p className="mt-2 text-sm text-slate-400">
+                Here&apos;s the visualization based on your query. You can save
+                this chart to your dashboard.
               </p>
 
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-900">
+              <div className="mt-8">
+                <h4 className="text-sm font-medium text-white/90">
                   Generated Query
                 </h4>
-                <div className="mt-2 bg-gray-50 p-3 rounded-md">
-                  <pre className="text-xs overflow-auto">{result.query}</pre>
+                <div className="mt-3 bg-dark-700/50 p-4 rounded-lg border border-dark-300/30">
+                  <pre className="text-xs text-slate-300 overflow-auto">
+                    {result.query}
+                  </pre>
                 </div>
               </div>
 
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-900">
+              <div className="mt-8">
+                <h4 className="text-sm font-medium text-white/90">
                   Save this chart
                 </h4>
-                <div className="mt-2 space-y-4">
+                <div className="mt-3 space-y-4">
                   <div>
                     <label
                       htmlFor="chart-title"
-                      className="block text-sm font-medium text-gray-700"
+                      className="block text-sm font-medium text-white"
                     >
                       Chart Title
                     </label>
                     <input
                       type="text"
                       id="chart-title"
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                      className="mt-2 block w-full border border-dark-300/50 rounded-lg shadow-md py-2 px-3 bg-dark-700/50 text-white focus:outline-none focus:ring-primary-500 focus:border-primary-400 sm:text-sm"
                       value={chartTitle}
                       onChange={(e) => setChartTitle(e.target.value)}
                       placeholder="Give your chart a title"
@@ -230,14 +261,14 @@ export default function NaturalLanguageQuery() {
                   <div>
                     <label
                       htmlFor="chart-description"
-                      className="block text-sm font-medium text-gray-700"
+                      className="block text-sm font-medium text-white"
                     >
                       Description (Optional)
                     </label>
                     <textarea
                       id="chart-description"
                       rows={2}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                      className="mt-2 block w-full border border-dark-300/50 rounded-lg shadow-md py-2 px-3 bg-dark-700/50 text-white focus:outline-none focus:ring-primary-500 focus:border-primary-400 sm:text-sm"
                       value={chartDescription}
                       onChange={(e) => setChartDescription(e.target.value)}
                       placeholder="Add a description"
@@ -251,17 +282,17 @@ export default function NaturalLanguageQuery() {
                         type="checkbox"
                         checked={isPublic}
                         onChange={(e) => setIsPublic(e.target.checked)}
-                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        className="h-5 w-5 text-primary-600 focus:ring-primary-500 bg-dark-700/70 border-dark-300 rounded"
                       />
                     </div>
                     <div className="ml-3 text-sm">
                       <label
                         htmlFor="is-public"
-                        className="font-medium text-gray-700"
+                        className="font-medium text-white"
                       >
                         Make this chart public
                       </label>
-                      <p className="text-gray-500">
+                      <p className="text-slate-400">
                         Public charts are visible to all users of SolViz Studio
                       </p>
                     </div>
@@ -270,10 +301,31 @@ export default function NaturalLanguageQuery() {
                   <button
                     type="button"
                     onClick={handleSaveChart}
-                    className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-secondary-600 hover:bg-secondary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-secondary-500"
+                    className="w-full inline-flex justify-center items-center py-3 px-5 border border-blue-500 shadow-lg text-sm font-medium rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition-all duration-300 focus:outline-none"
                     disabled={isSaving}
                   >
-                    {isSaving ? "Saving..." : "Save Chart"}
+                    {isSaving ? (
+                      <div className="flex items-center justify-center">
+                        <LoadingSpinner size="small" color="text-white" />
+                        <span className="ml-2">Saving chart...</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5 mr-2"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span>Save Chart</span>
+                      </div>
+                    )}
                   </button>
 
                   {saveMessage && (

@@ -46,18 +46,18 @@ export default function ChartCard({
   };
 
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg">
-      <div className="p-5">
+    <div className="bg-dark-500 border border-dark-200 overflow-hidden">
+      <div className="p-4">
         <div className="flex justify-between items-start">
-          <h3 className="text-lg leading-6 font-medium text-gray-900">
+          <h3 className="text-lg leading-6 font-medium text-white">
             {chart.title}
           </h3>
 
           {isOwner && (
-            <div className="flex space-x-2">
+            <div className="flex space-x-3">
               <button
                 onClick={handleEdit}
-                className="text-gray-400 hover:text-gray-500"
+                className="text-slate-400 hover:text-primary-400 transition-colors duration-200"
                 title="Edit chart"
               >
                 <svg
@@ -80,9 +80,9 @@ export default function ChartCard({
                 onClick={handleDelete}
                 className={`${
                   confirmDelete
-                    ? "text-red-600"
-                    : "text-gray-400 hover:text-gray-500"
-                }`}
+                    ? "text-red-500 hover:text-red-400"
+                    : "text-slate-400 hover:text-primary-400"
+                } transition-colors duration-200`}
                 title={
                   confirmDelete
                     ? "Click again to confirm deletion"
@@ -109,11 +109,11 @@ export default function ChartCard({
         </div>
 
         {chart.description && (
-          <p className="mt-2 text-sm text-gray-500">{chart.description}</p>
+          <p className="mt-2 text-sm text-slate-400">{chart.description}</p>
         )}
 
         <div className="mt-4">
-          <div className="w-full h-64">
+          <div className="w-full h-64 overflow-hidden border border-dark-300 bg-black">
             <VegaLite spec={chart.vega_spec} data={{ table: chart.data }} />
           </div>
         </div>
@@ -121,55 +121,55 @@ export default function ChartCard({
         <div className="mt-4 flex justify-between items-center">
           <div>
             <span
-              className={`px-2 py-1 text-xs rounded-full ${
+              className={`px-2 py-1 text-xs ${
                 chart.is_public
-                  ? "bg-green-100 text-green-800"
-                  : "bg-gray-100 text-gray-800"
+                  ? "bg-black text-blue-500 border border-blue-500"
+                  : "bg-black text-gray-400 border border-gray-500"
               }`}
             >
               {chart.is_public ? "Public" : "Private"}
             </span>
-            <span className="ml-2 text-xs text-gray-500">
+            <span className="ml-3 text-xs text-gray-500">
               {formatDate(chart.created_at)}
             </span>
           </div>
 
           <button
             onClick={toggleDetails}
-            className="text-sm text-primary-600 hover:text-primary-800"
+            className="text-sm text-blue-500 hover:text-white"
           >
             {showDetails ? "Hide details" : "Show details"}
           </button>
         </div>
 
         {showDetails && (
-          <div className="mt-4 pt-4 border-t border-gray-200">
+          <div className="mt-4 pt-4 border-t border-dark-300">
             <div className="space-y-4">
               <div>
-                <h4 className="text-sm font-medium text-gray-900">
+                <h4 className="text-sm font-medium text-white">
                   Natural Language Query
                 </h4>
-                <p className="mt-1 text-sm text-gray-600">
+                <p className="mt-1 text-sm text-gray-400">
                   {chart.natural_language_query}
                 </p>
               </div>
 
               <div>
-                <h4 className="text-sm font-medium text-gray-900">
+                <h4 className="text-sm font-medium text-white">
                   Generated Query
                 </h4>
-                <div className="mt-1 bg-gray-50 p-3 rounded-md">
-                  <pre className="text-xs overflow-auto whitespace-pre-wrap">
+                <div className="mt-1 bg-black p-3 border border-dark-300">
+                  <pre className="text-xs overflow-auto whitespace-pre-wrap text-gray-300">
                     {chart.query}
                   </pre>
                 </div>
               </div>
 
               <div>
-                <h4 className="text-sm font-medium text-gray-900">
+                <h4 className="text-sm font-medium text-white">
                   Data Provider
                 </h4>
-                <p className="mt-1 text-sm text-gray-600">{chart.provider}</p>
+                <p className="mt-1 text-sm text-gray-400">{chart.provider}</p>
               </div>
             </div>
           </div>

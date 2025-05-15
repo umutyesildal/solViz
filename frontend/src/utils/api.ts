@@ -46,7 +46,8 @@ api.interceptors.response.use(
 // Authentication API
 export const authAPI = {
   login: async (email: string, password: string) => {
-    const formData = new FormData();
+    // Convert FormData to URLSearchParams for proper x-www-form-urlencoded format
+    const formData = new URLSearchParams();
     formData.append('username', email); // Using email as username
     formData.append('password', password);
     
@@ -59,7 +60,11 @@ export const authAPI = {
   },
   
   register: async (userData: { email: string; password: string; full_name: string }) => {
-    const response = await api.post('/auth/register', userData);
+    const response = await api.post('/auth/register', userData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
     return response.data;
   },
 };
@@ -103,6 +108,19 @@ export const queryAPI = {
     const response = await api.post('/query/', queryData);
     return response.data;
   },
+};
+
+// Debug API
+export const debugAPI = {
+  getLogs: async (lines: number = 100) => {
+    const response = await api.get(`/debug/logs/recent?lines=${lines}`);
+    return response.data;
+  },
+  
+  getSystemInfo: async () => {
+    const response = await api.get('/debug/system/info');
+    return response.data;
+  }
 };
 
 export default api;

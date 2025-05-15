@@ -4,9 +4,16 @@ from typing import Dict, Any, List, Optional
 import openai
 
 from app.core.config import settings
+from app.utils.logger import (
+    log_openai_request,
+    log_openai_response,
+    log_exception,
+    logger
+)
 
-# Initialize OpenAI client
-client = openai.Client(api_key=settings.OPENAI_API_KEY)
+# Initialize OpenAI client with API key directly
+api_key = os.environ.get("OPENAI_API_KEY", "xx")
+client = openai.Client(api_key="")
 
 FLIPSIDE_SYSTEM_PROMPT = """
 You are an expert SQL assistant specializing in Solana blockchain data using Flipside crypto's SQL interface.
@@ -40,6 +47,8 @@ def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict
     """
     Convert a natural language query to a SQL or API query using OpenAI
     """
+    logger.info(f"Converting natural language query for {provider}")
+    
     if provider == "flipside":
         system_prompt = FLIPSIDE_SYSTEM_PROMPT
         user_prompt = f"Convert this question about Solana blockchain data to a SQL query for Flipside Crypto: {nl_query}"
@@ -47,9 +56,14 @@ def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict
         system_prompt = HELIUS_SYSTEM_PROMPT
         user_prompt = f"Convert this question about Solana blockchain data to a Helius API request: {nl_query}"
     else:
-        raise ValueError(f"Provider {provider} not supported")
+        error_msg = f"Provider {provider} not supported"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
     try:
+        # Log the OpenAI request
+        log_openai_request(f"{system_prompt}\n\n{user_prompt}", settings.OPENAI_MODEL)
+        
         response = client.chat.completions.create(
             model=settings.OPENAI_MODEL,
             messages=[
@@ -62,6 +76,9 @@ def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict
         # Extract the query from the response
         query = response.choices[0].message.content
         
+        # Log the OpenAI response
+        log_openai_response(query)
+        
         # For Flipside, return just the SQL query
         if provider == "flipside":
             # Strip out any markdown formatting if present
@@ -70,6 +87,7 @@ def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict
             elif "```" in query:
                 query = query.split("```")[1].split("```")[0].strip()
             
+            logger.info("Successfully converted natural language to SQL query")
             return {
                 "query": query,
                 "provider": "flipside",
@@ -87,12 +105,15 @@ def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict
             # Parse the JSON
             try:
                 api_query = json.loads(query)
+                logger.info("Successfully converted natural language to Helius API query")
                 return {
                     "query": api_query,
                     "provider": "helius",
                     "nl_query": nl_query
                 }
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                log_exception(e, "Error parsing JSON response from OpenAI")
+                logger.warning("Could not parse JSON, returning raw response")
                 return {
                     "query": query,
                     "provider": "helius",
@@ -100,6 +121,7 @@ def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict
                 }
     
     except Exception as e:
+        log_exception(e, "natural_language_to_query")
         raise Exception(f"Error generating query: {str(e)}")
 
 
@@ -107,8 +129,10 @@ def generate_vega_spec(data: List[Dict[str, Any]], nl_query: str) -> Dict[str, A
     """
     Generate a Vega-Lite visualization specification based on data and the natural language query
     """
+    logger.info("Generating Vega-Lite visualization specification")
     # Analyze the data structure
     if not data or len(data) == 0:
+        logger.warning("No data available for visualization")
         return {
             "mark": "text",
             "encoding": {},
@@ -116,35 +140,38 @@ def generate_vega_spec(data: List[Dict[str, Any]], nl_query: str) -> Dict[str, A
             "text": {"field": "text"}
         }
 
-    # Sample a small subset of data for OpenAI to analyze
-    sample_data = data[:5]
-    
-    sample_json = json.dumps(sample_data)
-    
-    # Create a prompt for OpenAI
-    system_prompt = """
-    You are a data visualization expert specializing in creating Vega-Lite specifications.
-    Given a dataset sample and a natural language query, create a Vega-Lite specification that best visualizes the data.
-    Return ONLY the JSON for the Vega-Lite specification without any explanations or markdown.
-    """
-    
-    user_prompt = f"""
-    Natural language query: {nl_query}
-    
-    Here's a sample of the data (first 5 rows):
-    {sample_json}
-    
-    Create a Vega-Lite specification that:
-    1. Effectively visualizes this data in relation to the query
-    2. Uses appropriate mark types (bar, line, area, etc.)
-    3. Has clear axis labels and titles
-    4. Uses a clean color scheme
-    5. Includes proper formatting for numbers and dates
-    
-    Return ONLY the Vega-Lite specification as valid JSON.
-    """
-    
     try:
+        # Sample a small subset of data for OpenAI to analyze
+        sample_data = data[:5]
+        
+        sample_json = json.dumps(sample_data)
+        
+        # Create a prompt for OpenAI
+        system_prompt = """
+        You are a data visualization expert specializing in creating Vega-Lite specifications.
+        Given a dataset sample and a natural language query, create a Vega-Lite specification that best visualizes the data.
+        Return ONLY the JSON for the Vega-Lite specification without any explanations or markdown.
+        """
+        
+        user_prompt = f"""
+        Natural language query: {nl_query}
+        
+        Here's a sample of the data (first 5 rows):
+        {sample_json}
+        
+        Create a Vega-Lite specification that:
+        1. Effectively visualizes this data in relation to the query
+        2. Uses appropriate mark types (bar, line, area, etc.)
+        3. Has clear axis labels and titles
+        4. Uses a clean color scheme
+        5. Includes proper formatting for numbers and dates
+        
+        Return ONLY the Vega-Lite specification as valid JSON.
+        """
+        
+        # Log the OpenAI request
+        log_openai_request(f"Vega-Lite spec generation for query: {nl_query}", settings.OPENAI_MODEL)
+        
         response = client.chat.completions.create(
             model=settings.OPENAI_MODEL,
             messages=[
@@ -157,6 +184,9 @@ def generate_vega_spec(data: List[Dict[str, Any]], nl_query: str) -> Dict[str, A
         # Extract the Vega-Lite specification from the response
         vega_spec_text = response.choices[0].message.content
         
+        # Log the OpenAI response
+        log_openai_response(vega_spec_text)
+        
         # Strip out any markdown formatting if present
         if "```json" in vega_spec_text:
             vega_spec_text = vega_spec_text.split("```json")[1].split("```")[0].strip()
@@ -165,6 +195,7 @@ def generate_vega_spec(data: List[Dict[str, Any]], nl_query: str) -> Dict[str, A
         
         # Parse the JSON
         vega_spec = json.loads(vega_spec_text)
+        logger.info("Successfully generated Vega-Lite specification")
         
         # Add the data to the spec
         vega_spec["data"] = {"values": data}
@@ -172,6 +203,9 @@ def generate_vega_spec(data: List[Dict[str, Any]], nl_query: str) -> Dict[str, A
         return vega_spec
     
     except Exception as e:
+        log_exception(e, "generate_vega_spec")
+        logger.warning("Error generating Vega-Lite spec, falling back to default visualization")
+        
         # If there's any error, return a simple default visualization
         return {
             "data": {"values": data},
