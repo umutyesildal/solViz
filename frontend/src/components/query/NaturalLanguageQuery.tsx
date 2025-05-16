@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQueryStore } from "@/store/query";
 import { useChartsStore } from "@/store/charts";
-import { VegaLite } from "react-vega";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import LoadingOverlay from "@/components/ui/LoadingOverlay";
+import ConversationThreadList from "./ConversationThreadList";
+import ConversationMessages from "./ConversationMessages";
 
 const providers = [
   { id: "flipside", name: "Flipside Crypto" },
@@ -18,9 +19,14 @@ export default function NaturalLanguageQuery() {
     result,
     isLoading,
     error,
+    threadId,
+    conversationHistory,
+    activeThreads,
     setQuery,
     setProvider,
     executeQuery,
+    // clearConversation, // Removed since we're using getState().clearConversation instead
+    fetchConversationThreads,
   } = useQueryStore();
 
   const { createChart } = useChartsStore();
@@ -30,6 +36,33 @@ export default function NaturalLanguageQuery() {
   const [isPublic, setIsPublic] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  // No longer need these states since they are handled by the ConversationThreadList component
+  // No longer needed as we're using direct store access
+  const conversationEndRef = useRef<HTMLDivElement>(null);
+
+  // Fetch conversation threads when component mounts
+  useEffect(() => {
+    fetchConversationThreads().catch((error) => {
+      console.error("Failed to load conversation threads:", error);
+    });
+  }, [fetchConversationThreads]);
+
+  // Load conversation history if a thread is already selected
+  useEffect(() => {
+    if (threadId) {
+      // This will use the setThreadId function which we've modified to also load the messages
+      useQueryStore.getState().setThreadId(threadId);
+    }
+  }, [threadId]);
+
+  // Scroll to bottom of conversation when new messages are added
+  useEffect(() => {
+    if (conversationEndRef.current) {
+      conversationEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [conversationHistory]);
 
   // Clear any save messages after a delay
   useEffect(() => {
@@ -66,7 +99,8 @@ export default function NaturalLanguageQuery() {
     setIsSaving(true);
 
     try {
-      await createChart({
+      // Create the chart
+      const chartData = {
         title: chartTitle || `Chart from "${naturalLanguageQuery}"`,
         description: chartDescription,
         query: result.query,
@@ -75,11 +109,19 @@ export default function NaturalLanguageQuery() {
         data: result.data,
         vega_spec: result.vega_spec,
         is_public: isPublic,
-      });
+        thread_id: threadId || undefined,
+      };
+
+      // The store's createChart function needs to extract the tags separately
+      // So we call it with the chart data but without passing the tags property
+      // Then pass the string tags as a separate argument
+      await createChart(chartData, tags.length > 0 ? tags : undefined);
 
       setSaveMessage("Chart saved successfully!");
       setChartTitle("");
       setChartDescription("");
+      setTags([]);
+      setTagInput("");
     } catch (error: unknown) {
       const err = error as Error;
       setSaveMessage(`Failed to save chart: ${err.message}`);
@@ -89,11 +131,33 @@ export default function NaturalLanguageQuery() {
     }
   };
 
+  // Handle tag input and management
+  const addTag = () => {
+    // Don't add empty tags or duplicates
+    if (!tagInput.trim() || tags.includes(tagInput.trim())) {
+      return;
+    }
+    setTags([...tags, tagInput.trim()]);
+    setTagInput("");
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setTags(tags.filter((tag) => tag !== tagToRemove));
+  };
+
+  const handleTagKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addTag();
+    }
+  };
+
+  // We'll use the ConversationThreadList component for thread management
+
   return (
     <div className="space-y-8">
       {/* Show loading overlay when saving a chart */}
       <LoadingOverlay isVisible={isSaving} message="Saving your chart..." />
-
       <div className="glass-card shadow-lg px-6 py-6 sm:rounded-lg sm:p-8">
         <div className="md:grid md:grid-cols-3 md:gap-8">
           <div className="md:col-span-1">
@@ -188,7 +252,6 @@ export default function NaturalLanguageQuery() {
           </div>
         </div>
       </div>
-
       {error && (
         <div className="glass-card bg-red-900/20 border border-red-800/30 p-5 rounded-lg">
           <div className="flex">
@@ -214,7 +277,6 @@ export default function NaturalLanguageQuery() {
           </div>
         </div>
       )}
-
       {result && (
         <div className="glass-card shadow-lg px-6 py-6 sm:rounded-lg sm:p-8">
           <div className="md:grid md:grid-cols-3 md:gap-8">
@@ -298,67 +360,172 @@ export default function NaturalLanguageQuery() {
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={handleSaveChart}
-                    className="w-full inline-flex justify-center items-center py-3 px-5 border border-blue-500 shadow-lg text-sm font-medium rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition-all duration-300 focus:outline-none"
-                    disabled={isSaving}
-                  >
-                    {isSaving ? (
-                      <div className="flex items-center justify-center">
-                        <LoadingSpinner size="small" color="text-white" />
-                        <span className="ml-2">Saving chart...</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5 mr-2"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
+                  <div>
+                    <label
+                      htmlFor="tags"
+                      className="block text-sm font-medium text-white"
+                    >
+                      Tags (Optional)
+                    </label>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {tags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center px-3 py-1 text-sm font-medium rounded-full bg-blue-500 text-white"
                         >
-                          <path
-                            fillRule="evenodd"
-                            d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        <span>Save Chart</span>
+                          {tag}
+                          <button
+                            onClick={() => removeTag(tag)}
+                            className="ml-2 text-blue-200 hover:text-white"
+                            type="button"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              viewBox="0 0 20 20"
+                              fill="currentColor"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          </button>
+                        </span>
+                      ))}
+                      <div className="flex-1">
+                        <input
+                          type="text"
+                          id="tags"
+                          className="min-w-[150px] border border-dark-300/50 rounded-lg shadow-md py-2 px-3 bg-dark-700/50 text-white focus:outline-none focus:ring-primary-500 focus:border-primary-400 sm:text-sm"
+                          value={tagInput}
+                          onChange={(e) => setTagInput(e.target.value)}
+                          onKeyDown={handleTagKeyDown}
+                          placeholder="Add tags and press Enter"
+                        />
+                        <button
+                          type="button"
+                          onClick={addTag}
+                          className="ml-2 px-3 py-2 border border-blue-500 rounded-lg bg-blue-500 text-white text-sm"
+                          disabled={!tagInput.trim()}
+                        >
+                          Add
+                        </button>
                       </div>
-                    )}
-                  </button>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-400">
+                      Tags help organize and discover charts later
+                    </p>
+                  </div>
+
+                  <div className="mt-6">
+                    <button
+                      onClick={handleSaveChart}
+                      className="w-full inline-flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-green-600 hover:bg-green-700 transition-all duration-300 focus:outline-none"
+                      disabled={isSaving || !chartTitle}
+                    >
+                      {isSaving ? (
+                        <div className="flex items-center justify-center">
+                          <LoadingSpinner size="small" color="text-white" />
+                          <span className="ml-2">Saving chart...</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 mr-2"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                          <span>Save Chart</span>
+                        </div>
+                      )}
+                    </button>
+                  </div>
 
                   {saveMessage && (
-                    <p
-                      className={`text-sm ${
-                        saveMessage.includes("Failed")
-                          ? "text-red-600"
-                          : "text-green-600"
+                    <div
+                      className={`mt-4 p-3 rounded-lg text-sm ${
+                        saveMessage.includes("failed", 0)
+                          ? "bg-red-900/20 text-red-300"
+                          : "bg-green-900/20 text-green-300"
                       }`}
                     >
                       {saveMessage}
-                    </p>
+                    </div>
                   )}
                 </div>
               </div>
             </div>
 
-            <div className="mt-5 md:mt-0 md:col-span-2">
-              <div className="bg-white overflow-hidden">
-                <div className="px-4 py-5 sm:p-6">
-                  <div className="aspect-w-16 aspect-h-9">
-                    <div className="w-full h-full flex items-center justify-center">
-                      {/* Render the visualization using Vega-Lite */}
-                      <VegaLite
-                        spec={result.vega_spec}
-                        data={{ table: result.data }}
-                      />
-                    </div>
-                  </div>
+            <div className="md:col-span-2 mt-8 md:mt-0">
+              <h3 className="text-lg font-medium gradient-text">
+                Conversation Threads
+              </h3>
+              <p className="mt-2 text-sm text-slate-400">
+                Manage your conversation threads. You can rename or delete
+                threads as needed.
+              </p>
+
+              <div className="mt-4">
+                <ConversationThreadList
+                  threads={activeThreads}
+                  activeThreadId={threadId}
+                />
+              </div>
+
+              <div className="mt-8">
+                <h4 className="text-sm font-medium text-white/90">
+                  Conversation History
+                </h4>
+                <div className="mt-3 bg-dark-700/50 p-4 rounded-lg border border-dark-300/30 max-h-[400px] overflow-y-auto">
+                  <ConversationMessages
+                    messages={conversationHistory}
+                    isLoading={isLoading}
+                  />
                 </div>
+                {conversationHistory.length > 0 && (
+                  <p className="mt-2 text-xs text-slate-400">
+                    Showing {conversationHistory.length} message
+                    {conversationHistory.length !== 1 ? "s" : ""}.
+                    {threadId
+                      ? ` Thread ID: ${threadId.substring(0, 8)}...`
+                      : ""}
+                  </p>
+                )}
               </div>
             </div>
           </div>
+        </div>
+      )}{" "}
+      {/* We're now handling the conversation display in the Results section, so removing duplicate components here */}
+      {threadId && (
+        <div className="flex justify-end mt-4">
+          <button
+            onClick={() => useQueryStore.getState().clearConversation()}
+            className="text-sm flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span>Start New Conversation</span>
+          </button>
         </div>
       )}
     </div>

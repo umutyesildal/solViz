@@ -16,7 +16,7 @@ from app.utils.logger import (
 )
 
 # Initialize OpenAI client with API key directly
-client = openai.Client(api_key="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")
+client = openai.Client(api_key="")
 
 # --- System prompts for non-assistant API calls ---
 FLIPSIDE_SYSTEM_PROMPT = """

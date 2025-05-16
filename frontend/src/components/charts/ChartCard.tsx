@@ -142,6 +142,19 @@ export default function ChartCard({
           </button>
         </div>
 
+        {chart.tags && chart.tags.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {chart.tags.map((tag) => (
+              <span
+                key={tag.id}
+                className="px-2 py-1 text-xs bg-dark-700 text-blue-400 border border-blue-500/30 rounded-full"
+              >
+                #{tag.name}
+              </span>
+            ))}
+          </div>
+        )}
+
         {showDetails && (
           <div className="mt-4 pt-4 border-t border-dark-300">
             <div className="space-y-4">
@@ -171,6 +184,22 @@ export default function ChartCard({
                 </h4>
                 <p className="mt-1 text-sm text-gray-400">{chart.provider}</p>
               </div>
+
+              {chart.tags && chart.tags.length > 0 && (
+                <div>
+                  <h4 className="text-sm font-medium text-white mt-4">Tags</h4>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {chart.tags.map((tag) => (
+                      <span
+                        key={tag.id}
+                        className="px-2 py-1 text-xs bg-dark-800 text-blue-400 border border-blue-500/30 rounded-full"
+                      >
+                        #{tag.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
