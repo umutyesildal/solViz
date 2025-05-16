@@ -1,7 +1,11 @@
 import json
 import os
-from typing import Dict, Any, List, Optional
+import time
+from datetime import datetime
+from typing import Dict, Any, List, Optional, Tuple
+
 import openai
+from flipside import Flipside
 
 from app.core.config import settings
 from app.utils.logger import (
@@ -12,9 +16,9 @@ from app.utils.logger import (
 )
 
 # Initialize OpenAI client with API key directly
-api_key = os.environ.get("OPENAI_API_KEY", "xx")
-client = openai.Client(api_key="")
+client = openai.Client(api_key="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")
 
+# --- System prompts for non-assistant API calls ---
 FLIPSIDE_SYSTEM_PROMPT = """
 You are an expert SQL assistant specializing in Solana blockchain data using Flipside crypto's SQL interface.
 Convert natural language questions about Solana blockchain data into valid SQL queries for Flipside Crypto.
@@ -42,6 +46,356 @@ Common Helius API endpoints:
 
 Format your response as a JSON object ready for API submission to Helius.
 """
+
+# --- ASSISTANT CONFIG ---
+ASSISTANT_ID = os.environ.get("OPENAI_ASSISTANT_ID") or "asst_sAoKoIP7ufWOeQAcxdjN25OP"
+MAX_RETRIES = 3
+
+# --- THREAD MANAGEMENT ---
+thread_cache = {}  # Simple in-memory cache of user_id -> thread_id mappings
+
+def agentic_nl_to_sql_and_data(nl_query: str, user_id: int = None, thread_id: str = None, db=None) -> Dict[str, Any]:
+    """
+    Main function for conversational, agentic Solana blockchain data exploration.
+    This function integrates the OpenAI Assistant API with Flipside data queries.
+    
+    Args:
+        nl_query: Natural language query from the user
+        user_id: Optional user ID for thread persistence
+        thread_id: Optional thread ID for continuing conversations
+        db: Database session for storing conversation history
+        
+    Returns:
+        Dict with:
+        - data: SQL query results (if any) or empty list
+        - sql: SQL query (if generated) or empty string
+        - vega_spec: Visualization spec (if data available) or empty dict  
+        - assistant_message: The assistant's response text
+        - thread_id: Thread ID for conversation continuity
+    """
+    # Process the natural language query using the Assistant API
+    result = process_nl_query(nl_query, user_id, thread_id, db)
+    
+    # Map the result to expected output format
+    return {
+        "data": result.get("data", []),
+        "sql": result.get("query", ""),  # Renamed from query to sql for API consistency
+        "vega_spec": result.get("vega_spec", {}),
+        "assistant_message": result.get("assistant_message", ""),
+        "thread_id": result.get("thread_id", "")
+    }
+
+def get_or_create_thread(client, user_id: int = None, thread_id: str = None, db=None) -> str:
+    """Get an existing thread or create a new one"""
+    if thread_id:
+        # If thread_id is provided, return it
+        return thread_id
+    
+    # Check if user has an existing thread in memory cache
+    if user_id and user_id in thread_cache:
+        return thread_cache[user_id]
+    
+    # Create new thread
+    thread = client.beta.threads.create()
+    thread_id = thread.id
+    
+    # Store thread in database if db session and user_id are provided
+    if db and user_id:
+        from app.models.models import ConversationThread
+        
+        # Check if thread already exists in db (unlikely but to be safe)
+        db_thread = db.query(ConversationThread).filter(
+            ConversationThread.thread_id == thread_id
+        ).first()
+        
+        if not db_thread:
+            # Create a new thread record in database
+            db_thread = ConversationThread(
+                user_id=user_id,
+                thread_id=thread_id,
+                title=f"New Conversation {thread_id[:8]}"
+            )
+            db.add(db_thread)
+            db.commit()
+    
+    # Cache the thread id if user_id provided
+    if user_id:
+        thread_cache[user_id] = thread_id
+        
+    return thread_id
+
+# --- MAIN ASSISTANT INTERACTION FUNCTION ---
+
+def process_nl_query(nl_query: str, user_id: int = None, thread_id: str = None, db=None) -> Dict[str, Any]:
+    """
+    Process natural language query using OpenAI Assistant
+    
+    Returns a dict with:
+    - data: The query results (if any)
+    - query: The SQL query (if generated) or a placeholder
+    - vega_spec: Visualization spec (if data available) or a placeholder
+    - assistant_message: The assistant's response 
+    - thread_id: The thread ID for continuing the conversation
+    - requires_clarification: Whether the assistant is asking for clarification
+    """
+    logger.info(f"Processing natural language query with Assistant API: '{nl_query}'")
+    
+    # Get or create thread
+    thread_id = get_or_create_thread(client, user_id, thread_id, db)
+    
+    # Send user message to Assistant
+    message = client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content=nl_query
+    )
+    
+    # Store user message in database if db session is provided
+    if db and user_id:
+        from app.models.models import ConversationMessage, ConversationThread
+        
+        # Get the thread and update last_activity_at
+        db_thread = db.query(ConversationThread).filter(
+            ConversationThread.thread_id == thread_id
+        ).first()
+        
+        if db_thread:
+            # Update thread activity
+            db_thread.last_activity_at = datetime.now()
+            db.add(db_thread)
+            
+            # Store user message
+            db_message = ConversationMessage(
+                thread_id=thread_id,
+                role="user",
+                content=nl_query
+            )
+            db.add(db_message)
+            db.commit()
+    
+    # Run Assistant
+    run = client.beta.threads.runs.create(
+        thread_id=thread_id,
+        assistant_id=ASSISTANT_ID
+    )
+    
+    # Wait for completion
+    run = _wait_for_run(client, thread_id, run.id)
+    
+    if run.status != "completed":
+        logger.error(f"Assistant run failed with status: {run.status}")
+        return {
+            "data": [],
+            "query": "Error: Assistant failed to process the request",
+            "vega_spec": {"error": True},
+            "assistant_message": f"Sorry, I encountered an error: {run.status}",
+            "thread_id": thread_id,
+            "requires_clarification": False
+        }
+    
+    # Get the latest assistant message
+    messages = client.beta.threads.messages.list(thread_id=thread_id, order="desc", limit=1)
+    if not messages.data or messages.data[0].role != "assistant":
+        logger.error("No assistant message found")
+        return {
+            "data": [],
+            "query": "Error: No response from assistant",
+            "vega_spec": {"error": True},
+            "assistant_message": "Sorry, I couldn't generate a response",
+            "thread_id": thread_id,
+            "requires_clarification": False
+        }
+    
+    # Extract text content, handling different content types properly
+    assistant_message = ""
+    for content_block in messages.data[0].content:
+        if hasattr(content_block, 'text') and content_block.text and hasattr(content_block.text, 'value'):
+            assistant_message += content_block.text.value
+        elif content_block.type == 'text':
+            assistant_message += content_block.text.value if hasattr(content_block, 'text') else ""
+        elif content_block.type == 'image_file':
+            # Skip image content or add placeholder text
+            assistant_message += "\n[Image attachment not displayed]\n"
+    
+    if not assistant_message.strip():
+        logger.error("No text content found in assistant response")
+        return {
+            "data": [],
+            "query": "Error: No extractable text in response",
+            "vega_spec": {"error": True},
+            "assistant_message": "Sorry, I couldn't generate a proper text response",
+            "thread_id": thread_id,
+            "requires_clarification": False
+        }
+    
+    # Store assistant message in database if db session is provided
+    if db and thread_id:
+        from app.models.models import ConversationMessage
+        
+        # Store assistant message
+        db_message = ConversationMessage(
+            thread_id=thread_id,
+            role="assistant",
+            content=assistant_message
+        )
+        db.add(db_message)
+        db.commit()
+    
+    # Clean up the assistant message to remove SQL thinking and keep only the conversational part
+    cleaned_message = _clean_assistant_message(assistant_message)
+    
+    # Check if we have SQL or a clarification request
+    sql_query, has_sql = _extract_sql_from_message(assistant_message)
+    
+    if not has_sql:
+        # This is a clarification request
+        logger.info("Assistant is asking for clarification")
+        return {
+            "data": [],
+            "query": "",  # Empty string, not None (to satisfy schema)
+            "vega_spec": {},  # Empty dict, not None (to satisfy schema)
+            "assistant_message": cleaned_message,
+            "thread_id": thread_id,
+            "requires_clarification": True
+        }
+    
+    # We have SQL, try to execute it
+    logger.info(f"Extracted SQL from Assistant: {sql_query[:100]}...")
+    
+    try:
+        data = _run_sql_query_with_retries(sql_query, thread_id)
+        # If we got data, generate visualization
+        if data:
+            vega_spec = generate_vega_spec(data, nl_query)
+            return {
+                "data": data,
+                "query": sql_query,
+                "vega_spec": vega_spec,
+                "assistant_message": cleaned_message,
+                "thread_id": thread_id,
+                "requires_clarification": False
+            }
+    except Exception as e:
+        logger.error(f"Error executing SQL query: {str(e)}")
+        
+    # If we get here, either initial SQL failed or no data 
+    return {
+        "data": [],
+        "query": sql_query,
+        "vega_spec": {},
+        "assistant_message": "I created a SQL query but it failed to execute. Please check your question and try again.",
+        "thread_id": thread_id,
+        "requires_clarification": False
+    }
+
+# --- HELPER FUNCTIONS ---
+
+def _wait_for_run(client, thread_id: str, run_id: str, timeout: int = 300) -> Any:
+    """Wait for an Assistant run to complete, with timeout"""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        run = client.beta.threads.runs.retrieve(
+            thread_id=thread_id,
+            run_id=run_id
+        )
+        if run.status in ["completed", "failed", "cancelled"]:
+            return run
+        time.sleep(1)  # Poll every second
+        
+    # Timeout reached
+    logger.warning(f"Run {run_id} timed out")
+    return run
+
+def _extract_sql_from_message(message: str) -> Tuple[str, bool]:
+    """Extract SQL from an assistant message, return SQL and whether SQL was found"""
+    # Try to find SQL in code blocks
+    if "```sql" in message:
+        sql = message.split("```sql")[1].split("```", 1)[0].strip()
+        return sql, True
+    elif "```" in message:
+        sql = message.split("```", 1)[1].split("```", 1)[0].strip()
+        # Check if this looks like SQL
+        if sql.lower().startswith("select") or "from" in sql.lower():
+            return sql, True
+    
+    # Try to find a SELECT statement
+    idx = message.lower().find("select ")
+    if idx != -1 and " from " in message.lower()[idx:]:
+        sql = message[idx:]
+        return sql, True
+        
+    # No SQL found
+    return "", False
+
+def _run_sql_query_with_retries(sql_query: str, thread_id: str) -> List[Dict[str, Any]]:
+    """Execute SQL query with retries on failure, asking Assistant to fix if needed"""
+    flipside = Flipside("48652595-7e94-450a-affd-b8c080d6b410", "https://api-v2.flipsidecrypto.xyz")
+    error_msg = None
+    
+    for attempt in range(MAX_RETRIES):
+        try:
+            log_openai_request(f"Executing SQL: {sql_query[:100]}...", "flipside")
+            log_flipside_request(sql_query)
+            result = flipside.query(sql_query)
+            
+            # Handle different result formats
+            if hasattr(result, 'records'):
+                # Direct attribute access
+                records = result.records
+            elif hasattr(result, 'results'):
+                # Some versions might use results instead
+                records = result.results
+            elif isinstance(result, dict) and 'records' in result:
+                # Dictionary format
+                records = result['records']
+            else:
+                # Assume the result itself is the records
+                records = result
+                
+            log_flipside_response(f"Got {len(records)} records")
+            return records
+        except Exception as e:
+            error_msg = str(e)
+            log_exception(e, f"SQL execution error (attempt {attempt+1}/{MAX_RETRIES})")
+            
+            if attempt < MAX_RETRIES - 1:
+                # Ask assistant to fix the query
+                client.beta.threads.messages.create(
+                    thread_id=thread_id,
+                    role="user",
+                    content=f"The SQL query failed with this error: {error_msg}. Please fix the query and try again."
+                )
+                
+                # Run Assistant
+                run = client.beta.threads.runs.create(
+                    thread_id=thread_id,
+                    assistant_id=ASSISTANT_ID
+                )
+                
+                # Wait for completion
+                run = _wait_for_run(client, thread_id, run.id)
+                
+                if run.status == "completed":
+                    # Get the latest assistant message
+                    messages = client.beta.threads.messages.list(thread_id=thread_id, order="desc", limit=1)
+                    if messages.data and messages.data[0].role == "assistant":
+                        assistant_message = messages.data[0].content[0].text.value
+                        new_sql, has_sql = _extract_sql_from_message(assistant_message)
+                        if has_sql:
+                            sql_query = new_sql  # Update SQL for next attempt
+                
+    # If we get here, all retries failed
+    logger.error(f"Failed to execute SQL query after {MAX_RETRIES} attempts: {error_msg}")
+    raise Exception(f"SQL execution failed: {error_msg}")
+
+# --- API LOGGING HELPERS ---
+def log_flipside_request(sql_query: str) -> None:
+    """Log a Flipside SQL query request"""
+    logger.info(f"Executing Flipside query: {sql_query[:100]}...")
+
+def log_flipside_response(response_summary: str) -> None:
+    """Log a Flipside query response"""
+    logger.info(f"Flipside response: {response_summary}")
 
 def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict[str, Any]:
     """
@@ -216,3 +570,49 @@ def generate_vega_spec(data: List[Dict[str, Any]], nl_query: str) -> Dict[str, A
             },
             "title": "Data Visualization"
         }
+
+def _clean_assistant_message(message: str) -> str:
+    """
+    Cleans up the assistant message to make it more user-friendly.
+    Removes SQL code blocks, thinking processes, etc.
+    """
+    # Remove SQL code blocks
+    if "```sql" in message:
+        parts = message.split("```sql")
+        before_sql = parts[0]
+        after_sql = "".join(parts[1:]).split("```", 1)[1] if "```" in parts[1] else ""
+        message = before_sql + after_sql
+    
+    # Remove any code blocks (not just SQL)
+    while "```" in message:
+        parts = message.split("```", 1)
+        before_code = parts[0]
+        remaining = parts[1]
+        
+        if "```" in remaining:
+            after_code = remaining.split("```", 1)[1]
+            message = before_code + after_code
+        else:
+            message = before_code
+    
+    # Remove thinking process markers
+    thinking_patterns = [
+        "Let me analyze this query",
+        "Let me think about this",
+        "Here's how I'll approach this",
+        "I'll write a SQL query",
+        "First, I need to",
+        "Let's create a SQL query",
+    ]
+    
+    for pattern in thinking_patterns:
+        if pattern in message:
+            # Try to keep only the final answer or explanation
+            parts = message.split(pattern, 1)
+            message = parts[0].strip()
+            
+    # If we've removed too much or the message is empty, return a default message
+    if not message.strip():
+        return "I've processed your query and created a visualization based on the Solana blockchain data you requested."
+    
+    return message.strip()
