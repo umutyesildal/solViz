@@ -16,7 +16,7 @@ from app.utils.logger import (
 )
 
 # Initialize OpenAI client with API key directly
-client = openai.Client(api_key="")
+client = openai.Client(api_key="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")
 
 # --- System prompts for non-assistant API calls ---
 FLIPSIDE_SYSTEM_PROMPT = """
@@ -194,14 +194,25 @@ def process_nl_query(nl_query: str, user_id: int = None, thread_id: str = None, 
         }
     
     # Get the latest assistant message
-    messages = client.beta.threads.messages.list(thread_id=thread_id, order="desc", limit=1)
-    if not messages.data or messages.data[0].role != "assistant":
-        logger.error("No assistant message found")
+    try:
+        messages = client.beta.threads.messages.list(thread_id=thread_id, order="desc", limit=1)
+        if not messages.data or messages.data[0].role != "assistant":
+            logger.error("No assistant message found")
+            return {
+                "data": [],
+                "query": "Error: No response from assistant",
+                "vega_spec": {"error": True},
+                "assistant_message": "Sorry, I couldn't generate a response",
+                "thread_id": thread_id,
+                "requires_clarification": False
+            }
+    except Exception as e:
+        logger.error(f"Error retrieving assistant messages: {str(e)}")
         return {
             "data": [],
-            "query": "Error: No response from assistant",
+            "query": "Error: Failed to retrieve assistant response",
             "vega_spec": {"error": True},
-            "assistant_message": "Sorry, I couldn't generate a response",
+            "assistant_message": "Sorry, I encountered an error when processing your query",
             "thread_id": thread_id,
             "requires_clarification": False
         }
@@ -209,10 +220,11 @@ def process_nl_query(nl_query: str, user_id: int = None, thread_id: str = None, 
     # Extract text content, handling different content types properly
     assistant_message = ""
     for content_block in messages.data[0].content:
-        if hasattr(content_block, 'text') and content_block.text and hasattr(content_block.text, 'value'):
-            assistant_message += content_block.text.value
-        elif content_block.type == 'text':
-            assistant_message += content_block.text.value if hasattr(content_block, 'text') else ""
+        # Check type first to avoid attribute errors
+        if content_block.type == 'text':
+            # Safe access to text.value
+            if hasattr(content_block, 'text') and hasattr(content_block.text, 'value'):
+                assistant_message += content_block.text.value
         elif content_block.type == 'image_file':
             # Skip image content or add placeholder text
             assistant_message += "\n[Image attachment not displayed]\n"
@@ -247,6 +259,29 @@ def process_nl_query(nl_query: str, user_id: int = None, thread_id: str = None, 
     # Check if we have SQL or a clarification request
     sql_query, has_sql = _extract_sql_from_message(assistant_message)
     
+    logger.info(f"SQL extraction result: has_sql={has_sql}, query_length={len(sql_query) if sql_query else 0}")
+    
+    if not has_sql:
+        # Try a more aggressive SQL extraction approach
+        logger.info("No SQL found with standard extraction, trying aggressive approach")
+        
+        # Look for any SQL-like patterns
+        sql_indicators = ["SELECT", "FROM", "WHERE", "GROUP BY", "ORDER BY", "LIMIT"]
+        has_sql_indicators = any(indicator.lower() in assistant_message.lower() for indicator in sql_indicators)
+        
+        if has_sql_indicators:
+            # Try to extract SQL more aggressively
+            start_idx = -1
+            for indicator in ["select ", "with "]:
+                if indicator in assistant_message.lower():
+                    start_idx = assistant_message.lower().find(indicator)
+                    break
+            
+            if start_idx >= 0:
+                sql_query = assistant_message[start_idx:]
+                has_sql = True
+                logger.info(f"Found SQL with aggressive extraction: {sql_query[:50]}...")
+    
     if not has_sql:
         # This is a clarification request
         logger.info("Assistant is asking for clarification")
@@ -263,30 +298,53 @@ def process_nl_query(nl_query: str, user_id: int = None, thread_id: str = None, 
     logger.info(f"Extracted SQL from Assistant: {sql_query[:100]}...")
     
     try:
+        logger.info(f"Attempting to execute SQL: {sql_query[:100]}...")
         data = _run_sql_query_with_retries(sql_query, thread_id)
-        # If we got data, generate visualization
-        if data:
-            vega_spec = generate_vega_spec(data, nl_query)
+        
+        # Check if we got valid data
+        if not data:
+            logger.warning("SQL executed successfully but returned no data")
             return {
-                "data": data,
+                "data": [],
                 "query": sql_query,
-                "vega_spec": vega_spec,
-                "assistant_message": cleaned_message,
+                "vega_spec": {},
+                "assistant_message": "I ran the query successfully but didn't find any data matching your criteria. Please try a different query.",
                 "thread_id": thread_id,
                 "requires_clarification": False
             }
-    except Exception as e:
-        logger.error(f"Error executing SQL query: {str(e)}")
+            
+        # Log data sample for debugging
+        data_sample = str(data[:2]) if len(data) > 0 else "[]"
+        logger.info(f"SQL execution successful. Sample data: {data_sample}")
         
-    # If we get here, either initial SQL failed or no data 
-    return {
-        "data": [],
-        "query": sql_query,
-        "vega_spec": {},
-        "assistant_message": "I created a SQL query but it failed to execute. Please check your question and try again.",
-        "thread_id": thread_id,
-        "requires_clarification": False
-    }
+        # Generate visualization with the data
+        vega_spec = generate_vega_spec(data, nl_query)
+        
+        # Log if vega spec generation was successful
+        if vega_spec:
+            logger.info("Vega spec generation successful")
+        
+        return {
+            "data": data,
+            "query": sql_query,
+            "vega_spec": vega_spec,
+            "assistant_message": cleaned_message,
+            "thread_id": thread_id,
+            "requires_clarification": False
+        }
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"Error executing SQL query: {error_msg}")
+        
+        # Return a helpful error message to the user
+        return {
+            "data": [],
+            "query": sql_query,
+            "vega_spec": {},
+            "assistant_message": f"I created a SQL query but it failed to execute with error: {error_msg[:100]}... Please rephrase your question or provide more details.",
+            "thread_id": thread_id,
+            "requires_clarification": False
+        }
 
 # --- HELPER FUNCTIONS ---
 
@@ -308,22 +366,50 @@ def _wait_for_run(client, thread_id: str, run_id: str, timeout: int = 300) -> An
 
 def _extract_sql_from_message(message: str) -> Tuple[str, bool]:
     """Extract SQL from an assistant message, return SQL and whether SQL was found"""
-    # Try to find SQL in code blocks
-    if "```sql" in message:
-        sql = message.split("```sql")[1].split("```", 1)[0].strip()
-        return sql, True
-    elif "```" in message:
-        sql = message.split("```", 1)[1].split("```", 1)[0].strip()
-        # Check if this looks like SQL
-        if sql.lower().startswith("select") or "from" in sql.lower():
-            return sql, True
+    if not message:
+        return "", False
     
-    # Try to find a SELECT statement
-    idx = message.lower().find("select ")
-    if idx != -1 and " from " in message.lower()[idx:]:
-        sql = message[idx:]
-        return sql, True
-        
+    # Try to find SQL in code blocks (most reliable way)
+    if "```sql" in message.lower():
+        try:
+            sql = message.split("```sql", 1)[1].split("```", 1)[0].strip()
+            logger.info("Found SQL in ```sql code block")
+            return sql, True
+        except IndexError:
+            logger.warning("Malformed SQL code block with ```sql tag")
+    
+    # Look for any code block that looks like SQL
+    if "```" in message:
+        try:
+            code_blocks = message.split("```")
+            # Check each code block (odd indices in the split)
+            for i in range(1, len(code_blocks), 2):
+                block = code_blocks[i].strip()
+                # Check if this block looks like SQL
+                if (block.lower().startswith("select") or 
+                    block.lower().startswith("with") or 
+                    "select" in block.lower() and "from" in block.lower()):
+                    logger.info("Found SQL in generic code block")
+                    return block, True
+        except IndexError:
+            logger.warning("Malformed code blocks")
+            
+    # Direct SELECT statement search (less reliable but might catch some cases)
+    sql_starts = ["select ", "with "]
+    for start in sql_starts:
+        idx = message.lower().find(start)
+        if idx != -1:
+            # Check if this looks like a real SQL statement
+            partial = message[idx:].lower()
+            # Only extract if it contains SQL keywords
+            if " from " in partial and (" where " in partial or 
+                                       " group by " in partial or 
+                                       " order by " in partial or 
+                                       " limit " in partial):
+                sql = message[idx:]
+                logger.info(f"Found SQL by direct search starting with '{start}'")
+                return sql, True
+    
     # No SQL found
     return "", False
 
@@ -379,8 +465,14 @@ def _run_sql_query_with_retries(sql_query: str, thread_id: str) -> List[Dict[str
                     # Get the latest assistant message
                     messages = client.beta.threads.messages.list(thread_id=thread_id, order="desc", limit=1)
                     if messages.data and messages.data[0].role == "assistant":
-                        assistant_message = messages.data[0].content[0].text.value
-                        new_sql, has_sql = _extract_sql_from_message(assistant_message)
+                        # Extract content safely
+                        fixed_message = ""
+                        for content_block in messages.data[0].content:
+                            if content_block.type == 'text' and hasattr(content_block, 'text') and hasattr(content_block.text, 'value'):
+                                fixed_message += content_block.text.value
+                        
+                        # Extract SQL if possible
+                        new_sql, has_sql = _extract_sql_from_message(fixed_message)
                         if has_sql:
                             sql_query = new_sql  # Update SQL for next attempt
                 
@@ -576,40 +668,48 @@ def _clean_assistant_message(message: str) -> str:
     Cleans up the assistant message to make it more user-friendly.
     Removes SQL code blocks, thinking processes, etc.
     """
-    # Remove SQL code blocks
-    if "```sql" in message:
-        parts = message.split("```sql")
-        before_sql = parts[0]
-        after_sql = "".join(parts[1:]).split("```", 1)[1] if "```" in parts[1] else ""
-        message = before_sql + after_sql
-    
-    # Remove any code blocks (not just SQL)
-    while "```" in message:
-        parts = message.split("```", 1)
-        before_code = parts[0]
-        remaining = parts[1]
+    if not message:
+        return "I've processed your query and created a visualization based on the Solana blockchain data you requested."
         
-        if "```" in remaining:
-            after_code = remaining.split("```", 1)[1]
-            message = before_code + after_code
-        else:
-            message = before_code
-    
-    # Remove thinking process markers
-    thinking_patterns = [
-        "Let me analyze this query",
-        "Let me think about this",
-        "Here's how I'll approach this",
-        "I'll write a SQL query",
-        "First, I need to",
-        "Let's create a SQL query",
-    ]
-    
-    for pattern in thinking_patterns:
-        if pattern in message:
-            # Try to keep only the final answer or explanation
-            parts = message.split(pattern, 1)
-            message = parts[0].strip()
+    try:
+        # Remove SQL code blocks
+        if "```sql" in message:
+            parts = message.split("```sql")
+            before_sql = parts[0]
+            after_sql = "".join(parts[1:]).split("```", 1)[1] if "```" in parts[1] else ""
+            message = before_sql + after_sql
+        
+        # Remove any code blocks (not just SQL)
+        while "```" in message:
+            parts = message.split("```", 1)
+            before_code = parts[0]
+            remaining = parts[1]
+            
+            if "```" in remaining:
+                after_code = remaining.split("```", 1)[1]
+                message = before_code + after_code
+            else:
+                message = before_code
+        
+        # Remove thinking process markers
+        thinking_patterns = [
+            "Let me analyze this query",
+            "Let me think about this",
+            "Here's how I'll approach this",
+            "I'll write a SQL query",
+            "First, I need to",
+            "Let's create a SQL query",
+        ]
+        
+        for pattern in thinking_patterns:
+            if pattern in message:
+                # Try to keep only the final answer or explanation
+                parts = message.split(pattern, 1)
+                message = parts[0].strip()
+    except Exception as e:
+        logger.warning(f"Error cleaning assistant message: {str(e)}")
+        # If there's an error in cleaning, return a safe value
+        return "Here's your visualization of Solana blockchain data."
             
     # If we've removed too much or the message is empty, return a default message
     if not message.strip():
