@@ -1,5 +1,4 @@
-import { ReactNode, useState } from "react";
-import Link from "next/link";
+import { ReactNode, useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/auth";
 
@@ -12,7 +11,9 @@ import {
   UserIcon,
   DocumentTextIcon,
   ArrowRightOnRectangleIcon,
+  CommandLineIcon,
 } from "@heroicons/react/24/outline";
+import Link from "next/link";
 
 interface NavItem {
   name: string;
@@ -31,6 +32,12 @@ const navigation: NavItem[] = [
     requiresAuth: true,
   },
   { name: "Profile", href: "/profile", icon: UserIcon, requiresAuth: true },
+  {
+    name: "Debug",
+    href: "/debug",
+    icon: CommandLineIcon,
+    requiresAuth: true,
+  },
 ];
 
 const authNavigation: NavItem[] = [
@@ -49,7 +56,7 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const pathname = usePathname();
-  const { isAuthenticated, logout } = useAuthStore();
+  const { isAuthenticated, logout, user } = useAuthStore();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {
@@ -65,7 +72,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const navItems = isAuthenticated ? navigation : authNavigation;
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen">
       {/* Mobile sidebar */}
       <div
         className={`fixed inset-0 z-40 lg:hidden ${
@@ -76,17 +83,17 @@ export default function AppLayout({ children }: AppLayoutProps) {
       >
         {/* Overlay */}
         <div
-          className="fixed inset-0 bg-gray-600 bg-opacity-75"
+          className="fixed inset-0 bg-black/80"
           aria-hidden="true"
           onClick={toggleSidebar}
         ></div>
 
         {/* Sidebar */}
-        <div className="relative flex flex-col w-full max-w-xs pt-5 pb-4 bg-white h-full">
+        <div className="relative flex flex-col w-full max-w-xs pt-5 pb-4 h-full bg-dark-500 border-r border-dark-100">
           <div className="absolute top-0 right-0 pt-2 mr-2">
             <button
               type="button"
-              className="flex items-center justify-center p-2 text-gray-400 rounded-md hover:bg-gray-100 hover:text-gray-500"
+              className="flex items-center justify-center p-2 text-gray-300 hover:text-white"
               onClick={toggleSidebar}
             >
               <span className="sr-only">Close sidebar</span>
@@ -97,11 +104,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
           {/* Logo */}
           <div className="flex items-center flex-shrink-0 px-4">
             <Link href="/" className="flex items-center">
-              <span className="text-2xl font-semibold text-primary-600">
-                SolViz
-              </span>
-              <span className="ml-1 text-2xl font-semibold text-gray-900">
-                Studio
+              <span className="text-2xl font-semibold text-white">
+                Sol<span className="text-blue-500">Viz</span>
               </span>
             </Link>
           </div>
@@ -116,23 +120,16 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     key={item.name}
                     href={item.href}
                     className={`
-                      group flex items-center px-2 py-2 text-base font-medium rounded-md
+                      flex items-center px-3 py-2 text-base font-medium
                       ${
                         isActive
-                          ? "bg-gray-100 text-primary-600"
-                          : "text-gray-600 hover:bg-gray-50 hover:text-primary-600"
+                          ? "text-blue-500 border-l-2 border-blue-500 pl-[10px]"
+                          : "text-gray-400 hover:text-white"
                       }
                     `}
                   >
                     <item.icon
-                      className={`
-                        mr-4 h-6 w-6 flex-shrink-0
-                        ${
-                          isActive
-                            ? "text-primary-600"
-                            : "text-gray-400 group-hover:text-primary-500"
-                        }
-                      `}
+                      className="mr-3 h-5 w-5 flex-shrink-0"
                       aria-hidden="true"
                     />
                     {item.name}
@@ -143,10 +140,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
               {isAuthenticated && (
                 <button
                   onClick={handleLogout}
-                  className="group flex w-full items-center px-2 py-2 text-base font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-red-600"
+                  className="flex w-full items-center px-3 py-2 text-base font-medium text-gray-400 hover:text-white mt-8"
                 >
                   <ArrowRightOnRectangleIcon
-                    className="mr-4 h-6 w-6 flex-shrink-0 text-gray-400 group-hover:text-red-500"
+                    className="mr-3 h-5 w-5 flex-shrink-0"
                     aria-hidden="true"
                   />
                   Logout
@@ -159,22 +156,19 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
       {/* Static sidebar for desktop */}
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
-        <div className="flex flex-col flex-1 min-h-0 bg-white border-r border-gray-200">
+        <div className="flex flex-col flex-1 min-h-0 bg-dark-500 border-r border-dark-100">
           <div className="flex flex-col flex-1 pt-5 pb-4 overflow-y-auto">
             {/* Logo */}
             <div className="flex items-center flex-shrink-0 px-4">
               <Link href="/" className="flex items-center">
-                <span className="text-2xl font-semibold text-primary-600">
-                  SolViz
-                </span>
-                <span className="ml-1 text-2xl font-semibold text-gray-900">
-                  Studio
+                <span className="text-2xl font-semibold text-white">
+                  Sol<span className="text-blue-500">Viz</span>
                 </span>
               </Link>
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-2 mt-5 space-y-1 bg-white">
+            <nav className="flex-1 px-2 mt-5 space-y-2">
               {navItems.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -182,21 +176,21 @@ export default function AppLayout({ children }: AppLayoutProps) {
                     key={item.name}
                     href={item.href}
                     className={`
-                      group flex items-center px-2 py-2 text-sm font-medium rounded-md
+                      group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ease-in-out
                       ${
                         isActive
-                          ? "bg-gray-100 text-primary-600"
-                          : "text-gray-600 hover:bg-gray-50 hover:text-primary-600"
+                          ? "bg-primary-600/20 text-white backdrop-blur-sm gradient-border"
+                          : "text-gray-300 hover:bg-dark-300/50 hover:text-white"
                       }
                     `}
                   >
                     <item.icon
                       className={`
-                        mr-3 h-5 w-5 flex-shrink-0
+                        mr-3 h-5 w-5 flex-shrink-0 transition-all duration-200
                         ${
                           isActive
-                            ? "text-primary-600"
-                            : "text-gray-400 group-hover:text-primary-500"
+                            ? "text-primary-400"
+                            : "text-gray-400 group-hover:text-primary-400"
                         }
                       `}
                       aria-hidden="true"
@@ -209,10 +203,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
               {isAuthenticated && (
                 <button
                   onClick={handleLogout}
-                  className="group flex w-full items-center px-2 py-2 text-sm font-medium rounded-md text-gray-600 hover:bg-gray-50 hover:text-red-600"
+                  className="group flex w-full items-center px-3 py-2.5 text-sm font-medium rounded-lg text-gray-300 hover:bg-dark-300/50 hover:text-red-400 transition-all duration-200 ease-in-out"
                 >
                   <ArrowRightOnRectangleIcon
-                    className="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-red-500"
+                    className="mr-3 h-5 w-5 flex-shrink-0 text-gray-400 group-hover:text-red-400 transition-all duration-200"
                     aria-hidden="true"
                   />
                   Logout
@@ -226,38 +220,39 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Content area */}
       <div className="flex flex-col lg:pl-64">
         {/* Navbar */}
-        <div className="sticky top-0 z-10 flex flex-shrink-0 h-16 bg-white shadow">
+        <div className="sticky top-0 z-10 flex flex-shrink-0 h-16 bg-dark-500">
           <button
             type="button"
-            className="px-4 text-gray-500 border-r border-gray-200 lg:hidden"
+            className="px-4 text-gray-300 hover:text-white transition-colors duration-200 lg:hidden"
             onClick={toggleSidebar}
           >
             <span className="sr-only">Open sidebar</span>
             <Bars3Icon className="w-6 h-6" aria-hidden="true" />
           </button>
 
+          {/* Navbar content split: left (title), right (actions) */}
           <div className="flex justify-between flex-1 px-4">
-            <div className="flex flex-1">
-              <div className="flex items-center w-full md:ml-0">
-                <h1 className="text-xl font-semibold text-gray-900">
-                  {pathname === "/" && "Welcome to SolViz Studio"}
-                  {pathname === "/dashboard" && "Dashboard"}
-                  {pathname === "/charts" && "My Charts"}
-                  {pathname === "/query" && "New Query"}
-                  {pathname === "/profile" && "Profile"}
-                  {pathname === "/login" && "Sign In"}
-                  {pathname === "/register" && "Create an Account"}
-                </h1>
-              </div>
+            {/* Left side: title */}
+            <div className="flex flex-1 items-center">
+              <h1 className="text-xl font-semibold gradient-text">
+                {pathname === "/" && "Welcome to SolViz Studio"}
+                {pathname === "/dashboard" && "Dashboard"}
+                {pathname === "/charts" && "My Charts"}
+                {pathname === "/query" && "New Query"}
+                {pathname === "/profile" && "Profile"}
+                {pathname === "/login" && "Sign In"}
+                {pathname === "/register" && "Create an Account"}
+                {pathname === "/debug" && "Debug Console"}
+              </h1>
             </div>
           </div>
         </div>
 
         {/* Main content */}
         <main className="flex-1">
-          <div className="py-6">
-            <div className="px-4 mx-auto max-w-7xl sm:px-6 lg:px-8">
-              {children}
+          <div className="py-8">
+            <div className="px-6 mx-auto max-w-7xl sm:px-8 lg:px-10 animate-fade-in">
+              <div className="">{children}</div>
             </div>
           </div>
         </main>

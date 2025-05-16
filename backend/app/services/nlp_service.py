@@ -1,13 +1,24 @@
 import json
 import os
-from typing import Dict, Any, List, Optional
+import time
+from datetime import datetime
+from typing import Dict, Any, List, Optional, Tuple
+
 import openai
+from flipside import Flipside
 
 from app.core.config import settings
+from app.utils.logger import (
+    log_openai_request,
+    log_openai_response,
+    log_exception,
+    logger
+)
 
-# Initialize OpenAI client
-client = openai.Client(api_key=settings.OPENAI_API_KEY)
+# Initialize OpenAI client with API key directly
+client = openai.Client(api_key="")
 
+# --- System prompts for non-assistant API calls ---
 FLIPSIDE_SYSTEM_PROMPT = """
 You are an expert SQL assistant specializing in Solana blockchain data using Flipside crypto's SQL interface.
 Convert natural language questions about Solana blockchain data into valid SQL queries for Flipside Crypto.
@@ -36,10 +47,450 @@ Common Helius API endpoints:
 Format your response as a JSON object ready for API submission to Helius.
 """
 
+# --- ASSISTANT CONFIG ---
+ASSISTANT_ID = os.environ.get("OPENAI_ASSISTANT_ID") or "asst_sAoKoIP7ufWOeQAcxdjN25OP"
+MAX_RETRIES = 3
+
+# --- THREAD MANAGEMENT ---
+thread_cache = {}  # Simple in-memory cache of user_id -> thread_id mappings
+
+def agentic_nl_to_sql_and_data(nl_query: str, user_id: int = None, thread_id: str = None, db=None) -> Dict[str, Any]:
+    """
+    Main function for conversational, agentic Solana blockchain data exploration.
+    This function integrates the OpenAI Assistant API with Flipside data queries.
+    
+    Args:
+        nl_query: Natural language query from the user
+        user_id: Optional user ID for thread persistence
+        thread_id: Optional thread ID for continuing conversations
+        db: Database session for storing conversation history
+        
+    Returns:
+        Dict with:
+        - data: SQL query results (if any) or empty list
+        - sql: SQL query (if generated) or empty string
+        - vega_spec: Visualization spec (if data available) or empty dict  
+        - assistant_message: The assistant's response text
+        - thread_id: Thread ID for conversation continuity
+    """
+    # Process the natural language query using the Assistant API
+    result = process_nl_query(nl_query, user_id, thread_id, db)
+    
+    # Map the result to expected output format
+    return {
+        "data": result.get("data", []),
+        "sql": result.get("query", ""),  # Renamed from query to sql for API consistency
+        "vega_spec": result.get("vega_spec", {}),
+        "assistant_message": result.get("assistant_message", ""),
+        "thread_id": result.get("thread_id", "")
+    }
+
+def get_or_create_thread(client, user_id: int = None, thread_id: str = None, db=None) -> str:
+    """Get an existing thread or create a new one"""
+    if thread_id:
+        # If thread_id is provided, return it
+        return thread_id
+    
+    # Check if user has an existing thread in memory cache
+    if user_id and user_id in thread_cache:
+        return thread_cache[user_id]
+    
+    # Create new thread
+    thread = client.beta.threads.create()
+    thread_id = thread.id
+    
+    # Store thread in database if db session and user_id are provided
+    if db and user_id:
+        from app.models.models import ConversationThread
+        
+        # Check if thread already exists in db (unlikely but to be safe)
+        db_thread = db.query(ConversationThread).filter(
+            ConversationThread.thread_id == thread_id
+        ).first()
+        
+        if not db_thread:
+            # Create a new thread record in database
+            db_thread = ConversationThread(
+                user_id=user_id,
+                thread_id=thread_id,
+                title=f"New Conversation {thread_id[:8]}"
+            )
+            db.add(db_thread)
+            db.commit()
+    
+    # Cache the thread id if user_id provided
+    if user_id:
+        thread_cache[user_id] = thread_id
+        
+    return thread_id
+
+# --- MAIN ASSISTANT INTERACTION FUNCTION ---
+
+def process_nl_query(nl_query: str, user_id: int = None, thread_id: str = None, db=None) -> Dict[str, Any]:
+    """
+    Process natural language query using OpenAI Assistant
+    
+    Returns a dict with:
+    - data: The query results (if any)
+    - query: The SQL query (if generated) or a placeholder
+    - vega_spec: Visualization spec (if data available) or a placeholder
+    - assistant_message: The assistant's response 
+    - thread_id: The thread ID for continuing the conversation
+    - requires_clarification: Whether the assistant is asking for clarification
+    """
+    logger.info(f"Processing natural language query with Assistant API: '{nl_query}'")
+    
+    # Get or create thread
+    thread_id = get_or_create_thread(client, user_id, thread_id, db)
+    
+    # Send user message to Assistant
+    message = client.beta.threads.messages.create(
+        thread_id=thread_id,
+        role="user",
+        content=nl_query
+    )
+    
+    # Store user message in database if db session is provided
+    if db and user_id:
+        from app.models.models import ConversationMessage, ConversationThread
+        
+        # Get the thread and update last_activity_at
+        db_thread = db.query(ConversationThread).filter(
+            ConversationThread.thread_id == thread_id
+        ).first()
+        
+        if db_thread:
+            # Update thread activity
+            db_thread.last_activity_at = datetime.now()
+            db.add(db_thread)
+            
+            # Store user message
+            db_message = ConversationMessage(
+                thread_id=thread_id,
+                role="user",
+                content=nl_query
+            )
+            db.add(db_message)
+            db.commit()
+    
+    # Run Assistant
+    run = client.beta.threads.runs.create(
+        thread_id=thread_id,
+        assistant_id=ASSISTANT_ID
+    )
+    
+    # Wait for completion
+    run = _wait_for_run(client, thread_id, run.id)
+    
+    if run.status != "completed":
+        logger.error(f"Assistant run failed with status: {run.status}")
+        return {
+            "data": [],
+            "query": "Error: Assistant failed to process the request",
+            "vega_spec": {"error": True},
+            "assistant_message": f"Sorry, I encountered an error: {run.status}",
+            "thread_id": thread_id,
+            "requires_clarification": False
+        }
+    
+    # Get the latest assistant message
+    try:
+        messages = client.beta.threads.messages.list(thread_id=thread_id, order="desc", limit=1)
+        if not messages.data or messages.data[0].role != "assistant":
+            logger.error("No assistant message found")
+            return {
+                "data": [],
+                "query": "Error: No response from assistant",
+                "vega_spec": {"error": True},
+                "assistant_message": "Sorry, I couldn't generate a response",
+                "thread_id": thread_id,
+                "requires_clarification": False
+            }
+    except Exception as e:
+        logger.error(f"Error retrieving assistant messages: {str(e)}")
+        return {
+            "data": [],
+            "query": "Error: Failed to retrieve assistant response",
+            "vega_spec": {"error": True},
+            "assistant_message": "Sorry, I encountered an error when processing your query",
+            "thread_id": thread_id,
+            "requires_clarification": False
+        }
+    
+    # Extract text content, handling different content types properly
+    assistant_message = ""
+    for content_block in messages.data[0].content:
+        # Check type first to avoid attribute errors
+        if content_block.type == 'text':
+            # Safe access to text.value
+            if hasattr(content_block, 'text') and hasattr(content_block.text, 'value'):
+                assistant_message += content_block.text.value
+        elif content_block.type == 'image_file':
+            # Skip image content or add placeholder text
+            assistant_message += "\n[Image attachment not displayed]\n"
+    
+    if not assistant_message.strip():
+        logger.error("No text content found in assistant response")
+        return {
+            "data": [],
+            "query": "Error: No extractable text in response",
+            "vega_spec": {"error": True},
+            "assistant_message": "Sorry, I couldn't generate a proper text response",
+            "thread_id": thread_id,
+            "requires_clarification": False
+        }
+    
+    # Store assistant message in database if db session is provided
+    if db and thread_id:
+        from app.models.models import ConversationMessage
+        
+        # Store assistant message
+        db_message = ConversationMessage(
+            thread_id=thread_id,
+            role="assistant",
+            content=assistant_message
+        )
+        db.add(db_message)
+        db.commit()
+    
+    # Clean up the assistant message to remove SQL thinking and keep only the conversational part
+    cleaned_message = _clean_assistant_message(assistant_message)
+    
+    # Check if we have SQL or a clarification request
+    sql_query, has_sql = _extract_sql_from_message(assistant_message)
+    
+    logger.info(f"SQL extraction result: has_sql={has_sql}, query_length={len(sql_query) if sql_query else 0}")
+    
+    if not has_sql:
+        # Try a more aggressive SQL extraction approach
+        logger.info("No SQL found with standard extraction, trying aggressive approach")
+        
+        # Look for any SQL-like patterns
+        sql_indicators = ["SELECT", "FROM", "WHERE", "GROUP BY", "ORDER BY", "LIMIT"]
+        has_sql_indicators = any(indicator.lower() in assistant_message.lower() for indicator in sql_indicators)
+        
+        if has_sql_indicators:
+            # Try to extract SQL more aggressively
+            start_idx = -1
+            for indicator in ["select ", "with "]:
+                if indicator in assistant_message.lower():
+                    start_idx = assistant_message.lower().find(indicator)
+                    break
+            
+            if start_idx >= 0:
+                sql_query = assistant_message[start_idx:]
+                has_sql = True
+                logger.info(f"Found SQL with aggressive extraction: {sql_query[:50]}...")
+    
+    if not has_sql:
+        # This is a clarification request
+        logger.info("Assistant is asking for clarification")
+        return {
+            "data": [],
+            "query": "",  # Empty string, not None (to satisfy schema)
+            "vega_spec": {},  # Empty dict, not None (to satisfy schema)
+            "assistant_message": cleaned_message,
+            "thread_id": thread_id,
+            "requires_clarification": True
+        }
+    
+    # We have SQL, try to execute it
+    logger.info(f"Extracted SQL from Assistant: {sql_query[:100]}...")
+    
+    try:
+        logger.info(f"Attempting to execute SQL: {sql_query[:100]}...")
+        data = _run_sql_query_with_retries(sql_query, thread_id)
+        # Check if we got valid data
+        if not data:
+            logger.warning("SQL executed successfully but returned no data")
+            return {
+                "data": [],
+                "query": sql_query,
+                "vega_spec": {},
+                "assistant_message": "I ran the query successfully but didn't find any data matching your criteria. Please try a different query.",
+                "thread_id": thread_id,
+                "requires_clarification": False
+            }
+        # Log data sample for debugging
+        data_sample = str(data[:2]) if len(data) > 0 else "[]"
+        logger.info(f"SQL execution successful. Sample data: {data_sample}")
+        # Generate visualization with the data
+        vega_spec = generate_vega_spec(data, nl_query)
+        # Generate a user-friendly summary for the user
+        user_friendly_message = generate_chart_summary(data, nl_query)
+        # Log if vega spec generation was successful
+        if vega_spec:
+            logger.info("Vega spec generation successful")
+        return {
+            "data": data,
+            "query": sql_query,
+            "vega_spec": vega_spec,
+            "assistant_message": user_friendly_message,
+            "thread_id": thread_id,
+            "requires_clarification": False
+        }
+    except Exception as e:
+        error_msg = str(e)
+        logger.error(f"Error executing SQL query: {error_msg}")
+        # Return a helpful error message to the user
+        return {
+            "data": [],
+            "query": sql_query,
+            "vega_spec": {},
+            "assistant_message": f"I created a SQL query but it failed to execute with error: {error_msg[:100]}... Please rephrase your question or provide more details.",
+            "thread_id": thread_id,
+            "requires_clarification": False
+        }
+
+# --- HELPER FUNCTIONS ---
+
+def _wait_for_run(client, thread_id: str, run_id: str, timeout: int = 300) -> Any:
+    """Wait for an Assistant run to complete, with timeout"""
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        run = client.beta.threads.runs.retrieve(
+            thread_id=thread_id,
+            run_id=run_id
+        )
+        if run.status in ["completed", "failed", "cancelled"]:
+            return run
+        time.sleep(1)  # Poll every second
+        
+    # Timeout reached
+    logger.warning(f"Run {run_id} timed out")
+    return run
+
+def _extract_sql_from_message(message: str) -> Tuple[str, bool]:
+    """Extract SQL from an assistant message, return SQL and whether SQL was found"""
+    if not message:
+        return "", False
+    
+    # Try to find SQL in code blocks (most reliable way)
+    if "```sql" in message.lower():
+        try:
+            sql = message.split("```sql", 1)[1].split("```", 1)[0].strip()
+            logger.info("Found SQL in ```sql code block")
+            return sql, True
+        except IndexError:
+            logger.warning("Malformed SQL code block with ```sql tag")
+    
+    # Look for any code block that looks like SQL
+    if "```" in message:
+        try:
+            code_blocks = message.split("```")
+            # Check each code block (odd indices in the split)
+            for i in range(1, len(code_blocks), 2):
+                block = code_blocks[i].strip()
+                # Check if this block looks like SQL
+                if (block.lower().startswith("select") or 
+                    block.lower().startswith("with") or 
+                    "select" in block.lower() and "from" in block.lower()):
+                    logger.info("Found SQL in generic code block")
+                    return block, True
+        except IndexError:
+            logger.warning("Malformed code blocks")
+            
+    # Direct SELECT statement search (less reliable but might catch some cases)
+    sql_starts = ["select ", "with "]
+    for start in sql_starts:
+        idx = message.lower().find(start)
+        if idx != -1:
+            # Check if this looks like a real SQL statement
+            partial = message[idx:].lower()
+            # Only extract if it contains SQL keywords
+            if " from " in partial and (" where " in partial or 
+                                       " group by " in partial or 
+                                       " order by " in partial or 
+                                       " limit " in partial):
+                sql = message[idx:]
+                logger.info(f"Found SQL by direct search starting with '{start}'")
+                return sql, True
+    
+    # No SQL found
+    return "", False
+
+def _run_sql_query_with_retries(sql_query: str, thread_id: str) -> List[Dict[str, Any]]:
+    """Execute SQL query with retries on failure, asking Assistant to fix if needed"""
+    flipside = Flipside("48652595-7e94-450a-affd-b8c080d6b410", "https://api-v2.flipsidecrypto.xyz")
+    error_msg = None
+    
+    for attempt in range(MAX_RETRIES):
+        try:
+            log_openai_request(f"Executing SQL: {sql_query[:100]}...", "flipside")
+            log_flipside_request(sql_query)
+            result = flipside.query(sql_query)
+            
+            # Handle different result formats
+            if hasattr(result, 'records'):
+                # Direct attribute access
+                records = result.records
+            elif hasattr(result, 'results'):
+                # Some versions might use results instead
+                records = result.results
+            elif isinstance(result, dict) and 'records' in result:
+                # Dictionary format
+                records = result['records']
+            else:
+                # Assume the result itself is the records
+                records = result
+                
+            log_flipside_response(f"Got {len(records)} records")
+            return records
+        except Exception as e:
+            error_msg = str(e)
+            log_exception(e, f"SQL execution error (attempt {attempt+1}/{MAX_RETRIES})")
+            
+            if attempt < MAX_RETRIES - 1:
+                # Ask assistant to fix the query
+                client.beta.threads.messages.create(
+                    thread_id=thread_id,
+                    role="user",
+                    content=f"The SQL query failed with this error: {error_msg}. Please fix the query and try again."
+                )
+                
+                # Run Assistant
+                run = client.beta.threads.runs.create(
+                    thread_id=thread_id,
+                    assistant_id=ASSISTANT_ID
+                )
+                
+                # Wait for completion
+                run = _wait_for_run(client, thread_id, run.id)
+                
+                if run.status == "completed":
+                    # Get the latest assistant message
+                    messages = client.beta.threads.messages.list(thread_id=thread_id, order="desc", limit=1)
+                    if messages.data and messages.data[0].role == "assistant":
+                        # Extract content safely
+                        fixed_message = ""
+                        for content_block in messages.data[0].content:
+                            if content_block.type == 'text' and hasattr(content_block, 'text') and hasattr(content_block.text, 'value'):
+                                fixed_message += content_block.text.value
+                        
+                        # Extract SQL if possible
+                        new_sql, has_sql = _extract_sql_from_message(fixed_message)
+                        if has_sql:
+                            sql_query = new_sql  # Update SQL for next attempt
+                
+    # If we get here, all retries failed
+    logger.error(f"Failed to execute SQL query after {MAX_RETRIES} attempts: {error_msg}")
+    raise Exception(f"SQL execution failed: {error_msg}")
+
+# --- API LOGGING HELPERS ---
+def log_flipside_request(sql_query: str) -> None:
+    """Log a Flipside SQL query request"""
+    logger.info(f"Executing Flipside query: {sql_query[:100]}...")
+
+def log_flipside_response(response_summary: str) -> None:
+    """Log a Flipside query response"""
+    logger.info(f"Flipside response: {response_summary}")
+
 def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict[str, Any]:
     """
     Convert a natural language query to a SQL or API query using OpenAI
     """
+    logger.info(f"Converting natural language query for {provider}")
+    
     if provider == "flipside":
         system_prompt = FLIPSIDE_SYSTEM_PROMPT
         user_prompt = f"Convert this question about Solana blockchain data to a SQL query for Flipside Crypto: {nl_query}"
@@ -47,9 +498,14 @@ def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict
         system_prompt = HELIUS_SYSTEM_PROMPT
         user_prompt = f"Convert this question about Solana blockchain data to a Helius API request: {nl_query}"
     else:
-        raise ValueError(f"Provider {provider} not supported")
+        error_msg = f"Provider {provider} not supported"
+        logger.error(error_msg)
+        raise ValueError(error_msg)
 
     try:
+        # Log the OpenAI request
+        log_openai_request(f"{system_prompt}\n\n{user_prompt}", settings.OPENAI_MODEL)
+        
         response = client.chat.completions.create(
             model=settings.OPENAI_MODEL,
             messages=[
@@ -62,6 +518,9 @@ def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict
         # Extract the query from the response
         query = response.choices[0].message.content
         
+        # Log the OpenAI response
+        log_openai_response(query)
+        
         # For Flipside, return just the SQL query
         if provider == "flipside":
             # Strip out any markdown formatting if present
@@ -70,6 +529,7 @@ def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict
             elif "```" in query:
                 query = query.split("```")[1].split("```")[0].strip()
             
+            logger.info("Successfully converted natural language to SQL query")
             return {
                 "query": query,
                 "provider": "flipside",
@@ -87,12 +547,15 @@ def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict
             # Parse the JSON
             try:
                 api_query = json.loads(query)
+                logger.info("Successfully converted natural language to Helius API query")
                 return {
                     "query": api_query,
                     "provider": "helius",
                     "nl_query": nl_query
                 }
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                log_exception(e, "Error parsing JSON response from OpenAI")
+                logger.warning("Could not parse JSON, returning raw response")
                 return {
                     "query": query,
                     "provider": "helius",
@@ -100,6 +563,7 @@ def natural_language_to_query(nl_query: str, provider: str = "flipside") -> Dict
                 }
     
     except Exception as e:
+        log_exception(e, "natural_language_to_query")
         raise Exception(f"Error generating query: {str(e)}")
 
 
@@ -107,8 +571,9 @@ def generate_vega_spec(data: List[Dict[str, Any]], nl_query: str) -> Dict[str, A
     """
     Generate a Vega-Lite visualization specification based on data and the natural language query
     """
-    # Analyze the data structure
+    logger.info("Generating Vega-Lite visualization specification")
     if not data or len(data) == 0:
+        logger.warning("No data available for visualization")
         return {
             "mark": "text",
             "encoding": {},
@@ -116,63 +581,106 @@ def generate_vega_spec(data: List[Dict[str, Any]], nl_query: str) -> Dict[str, A
             "text": {"field": "text"}
         }
 
-    # Sample a small subset of data for OpenAI to analyze
-    sample_data = data[:5]
-    
-    sample_json = json.dumps(sample_data)
-    
-    # Create a prompt for OpenAI
-    system_prompt = """
-    You are a data visualization expert specializing in creating Vega-Lite specifications.
-    Given a dataset sample and a natural language query, create a Vega-Lite specification that best visualizes the data.
-    Return ONLY the JSON for the Vega-Lite specification without any explanations or markdown.
-    """
-    
-    user_prompt = f"""
-    Natural language query: {nl_query}
-    
-    Here's a sample of the data (first 5 rows):
-    {sample_json}
-    
-    Create a Vega-Lite specification that:
-    1. Effectively visualizes this data in relation to the query
-    2. Uses appropriate mark types (bar, line, area, etc.)
-    3. Has clear axis labels and titles
-    4. Uses a clean color scheme
-    5. Includes proper formatting for numbers and dates
-    
-    Return ONLY the Vega-Lite specification as valid JSON.
-    """
-    
     try:
+        # Sample a small subset of data for OpenAI to analyze
+        sample_data = data[:5]
+        sample_json = json.dumps(sample_data)
+
+        system_prompt = """
+You are a data visualization expert specializing in Vega-Lite.
+Given a dataset sample and a user's question, create a visually appealing, modern, and interactive Vega-Lite chart.
+- Use the full available width and height (set width and height to 'container' or responsive).
+- Add tooltips and a legend if appropriate.
+- Use a modern, non-white background (e.g., #18181b or #212121) and a color palette that works well on dark backgrounds.
+- Choose the best chart type for the data and question (line, area, bar, etc.).
+- Make sure axis labels and titles are clear and readable.
+- Return ONLY the Vega-Lite JSON spec, no markdown or explanation.
+"""
+
+        user_prompt = f"""
+Natural language query: {nl_query}
+
+Here's a sample of the data (first 5 rows):
+{sample_json}
+
+Create a Vega-Lite specification that:
+1. Effectively visualizes this data in relation to the query
+2. Uses appropriate mark types (bar, line, area, etc.)
+3. Has clear axis labels and titles
+4. Uses a clean color scheme for dark backgrounds
+5. Includes proper formatting for numbers and dates
+6. Is interactive with tooltips and legend
+
+Return ONLY the Vega-Lite specification as valid JSON.
+"""
+
+        log_openai_request(f"Vega-Lite spec generation for query: {nl_query}", settings.OPENAI_MODEL)
+
         response = client.chat.completions.create(
             model=settings.OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.1
+            temperature=0.2
         )
-        
-        # Extract the Vega-Lite specification from the response
+
         vega_spec_text = response.choices[0].message.content
-        
+        log_openai_response(vega_spec_text)
+
         # Strip out any markdown formatting if present
         if "```json" in vega_spec_text:
             vega_spec_text = vega_spec_text.split("```json")[1].split("```")[0].strip()
         elif "```" in vega_spec_text:
             vega_spec_text = vega_spec_text.split("```")[1].split("```")[0].strip()
-        
-        # Parse the JSON
+
         vega_spec = json.loads(vega_spec_text)
-        
+        logger.info("Successfully generated Vega-Lite specification")
+
         # Add the data to the spec
         vega_spec["data"] = {"values": data}
-        
+
+        # Optionally, force responsive width/height if not set
+        vega_spec.setdefault("width", "container")
+        vega_spec.setdefault("height", 400)
+
+        # Optionally, set a dark background if not set
+        if "background" not in vega_spec:
+            vega_spec["background"] = "#212121"
+
+        # Remove grid lines from all axes if present
+        if "encoding" in vega_spec:
+            for axis in ["x", "y"]:
+                if axis in vega_spec["encoding"]:
+                    if "axis" not in vega_spec["encoding"][axis]:
+                        vega_spec["encoding"][axis]["axis"] = {}
+                    vega_spec["encoding"][axis]["axis"]["grid"] = False
+
+        # For line/area charts, set y-axis domain to a smart range based on data
+        if vega_spec.get("mark") in ["line", {"type": "line"}, "area", {"type": "area"}]:
+            y_enc = vega_spec.get("encoding", {}).get("y", {})
+            y_field = y_enc.get("field")
+            if y_field and y_enc.get("type") == "quantitative":
+                # Calculate min/max for the y field
+                y_values = [row.get(y_field) for row in data if isinstance(row.get(y_field), (int, float))]
+                if y_values:
+                    y_min = min(y_values)
+                    y_max = max(y_values)
+                    y_range = y_max - y_min
+                    # Add 5% padding on both sides, but never below zero if all values are positive
+                    pad = y_range * 0.05 if y_range > 0 else 1
+                    domain_min = max(0, y_min - pad) if y_min >= 0 else y_min - pad
+                    domain_max = y_max + pad
+                    if "scale" not in y_enc:
+                        y_enc["scale"] = {}
+                    y_enc["scale"]["domain"] = [domain_min, domain_max]
+                    vega_spec["encoding"]["y"] = y_enc
+
         return vega_spec
-    
+
     except Exception as e:
-        # If there's any error, return a simple default visualization
+        log_exception(e, "generate_vega_spec")
+        logger.warning("Error generating Vega-Lite spec, falling back to default visualization")
         return {
             "data": {"values": data},
             "mark": "bar",
@@ -180,5 +688,86 @@ def generate_vega_spec(data: List[Dict[str, Any]], nl_query: str) -> Dict[str, A
                 "x": {"field": list(data[0].keys())[0], "type": "nominal"},
                 "y": {"field": list(data[0].keys())[1], "type": "quantitative"}
             },
-            "title": "Data Visualization"
+            "title": "Data Visualization",
+            "background": "#212121",
+            "width": "container",
+            "height": 400
         }
+
+def generate_chart_summary(data: List[Dict[str, Any]], nl_query: str) -> str:
+    """
+    Use OpenAI to generate a user-friendly summary of the chart and data.
+    """
+    if not data:
+        return "No data available to summarize."
+    import json
+    sample_data = json.dumps(data[:5])
+    prompt = f"""
+    The user asked: '{nl_query}'
+    Here is a sample of the data: {sample_data}
+    Write a short, user-friendly summary (2-3 sentences) explaining what the chart shows. 
+    Do not mention SQL, code, or technical steps. Focus on the insight the user can get from the chart.
+    """
+    response = client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": "You are a helpful data analyst assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.5
+    )
+    return response.choices[0].message.content.strip()
+
+def _clean_assistant_message(message: str) -> str:
+    """
+    Cleans up the assistant message to make it more user-friendly.
+    Removes SQL code blocks, thinking processes, etc.
+    """
+    if not message:
+        return "I've processed your query and created a visualization based on the Solana blockchain data you requested."
+        
+    try:
+        # Remove SQL code blocks
+        if "```sql" in message:
+            parts = message.split("```sql")
+            before_sql = parts[0]
+            after_sql = "".join(parts[1:]).split("```", 1)[1] if "```" in parts[1] else ""
+            message = before_sql + after_sql
+        
+        # Remove any code blocks (not just SQL)
+        while "```" in message:
+            parts = message.split("```", 1)
+            before_code = parts[0]
+            remaining = parts[1]
+            
+            if "```" in remaining:
+                after_code = remaining.split("```", 1)[1]
+                message = before_code + after_code
+            else:
+                message = before_code
+        
+        # Remove thinking process markers
+        thinking_patterns = [
+            "Let me analyze this query",
+            "Let me think about this",
+            "Here's how I'll approach this",
+            "I'll write a SQL query",
+            "First, I need to",
+            "Let's create a SQL query",
+        ]
+        
+        for pattern in thinking_patterns:
+            if pattern in message:
+                # Try to keep only the final answer or explanation
+                parts = message.split(pattern, 1)
+                message = parts[0].strip()
+    except Exception as e:
+        logger.warning(f"Error cleaning assistant message: {str(e)}")
+        # If there's an error in cleaning, return a safe value
+        return "Here's your visualization of Solana blockchain data."
+            
+    # If we've removed too much or the message is empty, return a default message
+    if not message.strip():
+        return "I've processed your query and created a visualization based on the Solana blockchain data you requested."
+    
+    return message.strip()

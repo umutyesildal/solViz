@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
-from app.api import auth, charts, query
+from app.api import auth, charts, query, debug, conversations, tags
 from app.core.config import settings
 
 app = FastAPI(
@@ -25,6 +25,9 @@ if settings.BACKEND_CORS_ORIGINS:
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(charts.router, prefix=f"{settings.API_V1_STR}/charts", tags=["charts"])
 app.include_router(query.router, prefix=f"{settings.API_V1_STR}/query", tags=["query"])
+app.include_router(debug.router, prefix=f"{settings.API_V1_STR}/debug", tags=["debug"])
+app.include_router(conversations.router, prefix=f"{settings.API_V1_STR}/conversations", tags=["conversations"])
+app.include_router(tags.router, prefix=f"{settings.API_V1_STR}/tags", tags=["tags"])
 
 
 @app.get("/", include_in_schema=False)

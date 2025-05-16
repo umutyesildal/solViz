@@ -1,0 +1,812 @@
+Jupiter Governance - Votes
+
+-- forked from Jupiter Governance - Votes @ https://flipsidecrypto.xyz/studio/queries/885465e3-5bfb-4939-8d48-1c50114ccd56
+-- forked from kellen / Jupiter LFG Token Launchpad Results @ https://flipsidecrypto.xyz/kellen/q/vdO1szn5p_tq/jupiter-lfg-token-launchpad-results
+with t0 as (
+    select decoded_instruction:args:side::string as side
+    , decoded_instruction:args:weight::int * power(10, -6) as weight
+    , signers[0]::string as voter
+    , value:pubkey::string AS proposal
+    , value:name::string AS name
+    , block_timestamp
+    from solana.core.fact_decoded_instructions i
+    , LATERAL FLATTEN(input => decoded_instruction:accounts)
+    where block_timestamp >= '2024-12-04'
+        and i.program_id in (
+            'GovaE4iu227srtG2s3tZzB4RmWBzw8sTwrCLZz7kN7rY'
+        )
+        and name = 'proposal'
+        and proposal = 'xMLsw7zzBfRXNiQQo42aUohRsibgrmWcPt2mD8HdUUr'
+        and side is not null
+        and side > 0
+        and weight is not null
+        and event_type = 'setVote'
+        qualify(
+            row_number() over (partition by voter order by block_timestamp desc) = 1
+        )
+)
+select proposal
+, side
+, case 
+    when side = '1' then 'Yes, I am comfortable with this proposal.'
+    when side = '2' then 'No, I am not comfortable with this proposal.'
+  end as options
+, round(sum(weight)) as votes
+, count(1) as n_voters
+, max(block_timestamp)
+, min(block_timestamp)
+from t0
+where weight > 0
+group by 1, 2, 3
+order by votes desc
+
+Monthly Metaplex NFT Mints
+
+WITH price AS (
+SELECT
+  hour::date AS date1,
+  CASE
+    WHEN token_address = 'So11111111111111111111111111111111111111112' THEN 'So11111111111111111111111111111111111111111'
+    ELSE token_address
+  END AS token_address,
+  AVG(price) AS price
+FROM solana.price.ez_prices_hourly
+  -- WHERE token_address = ''
+GROUP BY 1,2
+),
+
+base AS (
+SELECT
+  block_timestamp,
+  tx_id,
+  mint,
+  purchaser,
+  mint_price * price AS mint_price,
+  mint_currency,
+  program_id
+FROM solana.nft.fact_nft_mints m JOIN price p 
+ON m.block_timestamp::date = p.date1 AND m.mint_currency = p.token_address
+  WHERE program_id IN (
+  'BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY',
+  'CndyV3LdqHUfDLmE5naZjVN8rBZz4tqhdefbAnjHG3JR',
+  'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
+)
+  AND succeeded = 'TRUE'
+-- having mint_price < 1 --excluding liquidity pool nft mint prices
+)
+
+SELECT
+  DATE_TRUNC(month, block_timestamp) AS timespan,
+  COUNT(DISTINCT tx_id) AS mint_transactions,
+  SUM(mint_transactions) OVER (ORDER BY timespan) AS cummul_mint_transactions,
+  COUNT(DISTINCT mint) AS NFT_mints,
+  SUM(NFT_mints) OVER (ORDER BY timespan) AS cummul_NFT_mints,
+  COUNT(DISTINCT purchaser) AS minters,
+  SUM(minters) OVER (ORDER BY timespan) AS cummul_minters,
+  ROUND(SUM(
+      CASE
+        WHEN mint_price < 1 THEN mint_price
+        ELSE 0
+      END), 2) AS total_mint_price,
+  SUM(total_mint_price) OVER (ORDER BY timespan) AS cummul_mint_price,
+  ROUND(AVG(
+      CASE
+        WHEN mint_price < 1 THEN mint_price
+        ELSE 0
+      END), 7) AS avg_mint_price
+FROM base
+GROUP BY 1--, 2 
+ORDER BY timespan
+
+J4J #3: Jupuary Vote 2 2nd List
+
+WITH vote AS (
+  SELECT
+    signers[0] AS voter,
+    decoded_instruction:accounts[1]:pubkey AS proposal,
+    decoded_instruction:args:side AS vote_choice,
+    decoded_instruction:args:weight / pow(10, 6) AS vote_weight,
+    block_timestamp,
+    tx_id
+  FROM
+    solana.core.ez_events_decoded
+  WHERE 1 = 1
+    AND block_timestamp::date >= '2024-12-04'
+    AND program_id = 'GovaE4iu227srtG2s3tZzB4RmWBzw8sTwrCLZz7kN7rY'
+    AND event_type = 'setVote'
+    AND proposal = 'xMLsw7zzBfRXNiQQo42aUohRsibgrmWcPt2mD8HdUUr'
+    AND succeeded
+),
+latest_vote AS (
+  SELECT
+    voter,
+    MAX(block_timestamp) AS latest
+  FROM
+    vote
+  GROUP BY
+    voter
+)
+SELECT
+  v.voter AS "Wallet Address",
+  v.proposal AS "Proposal ID",
+  v.block_timestamp AS "Vote Timestamp",
+  1 as "Vote Count"
+FROM
+  vote v
+JOIN
+  latest_vote lv ON v.voter = lv.voter AND v.block_timestamp = lv.latest
+ORDER BY
+  v.vote_weight DESC
+LIMIT 10000000 -- Large limit to get all remaining rows
+OFFSET 100000; -- Skips the first 100,000 rows
+ 
+
+ 
+
+raw-jito-tips
+
+with date_filter as (
+  select
+    case
+      when {{n_days}} != 0 then dateadd(day, - {{n_days}}, current_date())
+      else to_timestamp('{{start_date}}')
+    end start_date,
+    case
+      when {{n_days}} != 0 then current_date()
+      else to_timestamp('{{end_date}}')
+    end end_date
+)
+
+-- 2. Get data on tips sent to jito tip accounts by searcher
+,
+jito_tips as(
+  select
+    block_timestamp as dt,
+    tx_id,
+    block_id,
+    tx_from as searcher,
+    amount as tips
+  from
+    solana.core.fact_transfers
+    join date_filter on block_timestamp between start_date
+    and end_date
+  where
+    (
+      tx_to = '96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5'
+      or tx_to = 'HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe'
+      or tx_to = 'Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY'
+      or tx_to = 'ADaUMid9yfUytqMBgopwjb2DTLSokTSzL1zt6iGPaS49'
+      or tx_to = 'DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh'
+      or tx_to = 'ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt'
+      or tx_to = 'DttWaMuVvTiduZRnguLF7jNxTgiMBZ1hyAumKUiL2KRL'
+      or tx_to = '3AVi9Tg9Uo68tJfuvoKvqKNWKkC5wPdSSdeBnizKZ6jT'
+    )
+),
+
+leader_slots as(
+  select
+    date_trunc('hour', block_timestamp) as dt,
+    block_id,
+    val.node_pubkey as validator
+  from
+    solana.gov.fact_rewards_fee rf
+    inner join solana.gov.fact_validators val on rf.pubkey = val.node_pubkey
+    and rf.epoch_earned = val.epoch
+    -- inner join validators_pubkeys vpk on vpk.pubkey = val.node_pubkey
+    join date_filter on rf.block_timestamp between start_date
+    and end_date
+),
+
+tips_data_raw as(
+  select
+    l.dt,
+    t.block_id,
+    t.searcher,
+    t.tips,
+    l.validator
+  from
+    leader_slots l
+    join jito_tips t on l.block_id = t.block_id
+)
+
+select *
+from tips_data_raw
+
+ICO Raising
+
+
+WITH token_raises AS (
+  SELECT
+    date_trunc('day', min(block_timestamp)) as start_date,
+    tx_to AS token,
+    SUM(amount) AS tot_sol_raised,
+    MAX(amount) as max_buy,
+    COUNT(distinct tx_from) as n_wallets,
+    AVG(amount) as avg_buy,
+    MEDIAN(amount) as median_buy
+  FROM
+    solana.core.fact_transfers
+  WHERE
+    tx_to IN (
+      'BL1gBdtuYRYSepKKpoy1GCNSmS1JeGSiNb7tdB2HQzor',
+      '4gHb9tUASDRgpe2vdi6Y2jh8mbSqPCmyf1ZvSUcazKSc',
+      '2Y8hZh5on4q9wyqXoNYC8oYPUVQMunrzqW8qDmxup4R8',
+      --'5agSjW9MZEXntG9kw8fzY6cPPbdhWGBgKSLXfDLFeEqZ',
+      'CZ5aEKMBsiVyAKCig8R2RQYF9T1rPdPDrdonWvS4v6iz',
+      '31bbrnPrWKqJYkdHCWPYNBLnAZ3yqRBmLJDtSEwBNgQE',
+      'GsjtZXs5cGKSdUoW6CveUu5z7JDT5UL6rPkQEsDwbKww',
+      '97xH1PV8zGhMbEZCuMN2TQTCTsZ5HgkvQvm2ncfqT2TZ',
+      'E9E6Nxc8DdfLj7vQHLyuXuZxAWYLs3Q5UAaEwByBidz6',
+      '6jfC9p4jzTBTGpMrbR8H464kNo1SBGNCW17oDETzSJrf',
+      '6JR5Jgy9bTvEeuMh5QKRRPXCWq38s97Eba6PxGvdafTQ',
+      'HdENn8wP6srk1AuE2CaJj6bRbjcU2kYs12H4C4HgNAsF',
+      'AVjzMBxBtvoGFdJ55JhE6sTLiyVPAV3EZ3kzFn6FNxdV'
+    )
+    AND mint IN (
+      'So11111111111111111111111111111111111111112',
+      'So11111111111111111111111111111111111111111'
+    )
+  AND amount >= 0.1
+  GROUP BY
+    tx_to
+)
+
+SELECT
+  r.start_date,
+  r.token,
+  m.symbol,
+  r.tot_sol_raised,
+  r.max_buy,
+  r.n_wallets,
+  r.avg_buy,
+  r.median_buy
+FROM
+  token_raises r
+JOIN (
+  VALUES
+    ('BL1gBdtuYRYSepKKpoy1GCNSmS1JeGSiNb7tdB2HQzor', '$SMOLE'),
+    ('4gHb9tUASDRgpe2vdi6Y2jh8mbSqPCmyf1ZvSUcazKSc', '$CONDOM'),
+    ('2Y8hZh5on4q9wyqXoNYC8oYPUVQMunrzqW8qDmxup4R8', '$URF'),
+    --('5agSjW9MZEXntG9kw8fzY6cPPbdhWGBgKSLXfDLFeEqZ', '$HODL'),
+    ('CZ5aEKMBsiVyAKCig8R2RQYF9T1rPdPDrdonWvS4v6iz', '$BOBAOPPA'),
+    ('31bbrnPrWKqJYkdHCWPYNBLnAZ3yqRBmLJDtSEwBNgQE', '$TOGO'),
+    ('GsjtZXs5cGKSdUoW6CveUu5z7JDT5UL6rPkQEsDwbKww', '$PAIN'),
+    ('97xH1PV8zGhMbEZCuMN2TQTCTsZ5HgkvQvm2ncfqT2TZ', '$LIKE'),
+    ('E9E6Nxc8DdfLj7vQHLyuXuZxAWYLs3Q5UAaEwByBidz6', '$MOONKE'),
+    ('6jfC9p4jzTBTGpMrbR8H464kNo1SBGNCW17oDETzSJrf', '$BOME'),
+    ('6JR5Jgy9bTvEeuMh5QKRRPXCWq38s97Eba6PxGvdafTQ', '$GM'),
+    ('HdENn8wP6srk1AuE2CaJj6bRbjcU2kYs12H4C4HgNAsF', '$SLERF'),
+    ('AVjzMBxBtvoGFdJ55JhE6sTLiyVPAV3EZ3kzFn6FNxdV', 'Sahil')
+) AS m(address, symbol)
+  ON r.token = m.address
+ORDER BY
+  r.tot_sol_raised DESC
+
+Solana Sandwich Analysis - Summary
+
+with date_filter as (
+  select
+    dateadd(day, -30, current_date()) as start_date,  -- defaulting to last 30 days
+    current_date() as end_date
+),
+
+tx_list as(
+  select 
+    ft.tx_id,
+    ft.block_id,
+    ft.block_timestamp,
+    ft.tx_index
+  from solana.core.fact_transactions ft
+  join date_filter df 
+    on ft.block_timestamp between df.start_date and df.end_date
+  where 
+    ft.succeeded = true
+),
+
+price_data as(
+  select 
+    hour,
+    token_address,
+    symbol,
+    price
+  from solana.price.ez_prices_hourly ph
+  join date_filter df 
+    on ph.hour between df.start_date and df.end_date
+  where 
+    ph.blockchain = 'solana'
+),
+
+swap_list as(
+  select 
+    fs.block_timestamp,
+    fs.tx_id,
+    fs.block_id,
+    fs.swapper,
+    fs.program_id,
+    fs.swap_program,
+    fs.swap_to_mint,
+    fs.swap_to_amount,
+    fs.swap_from_mint,
+    fs.swap_from_amount
+  from solana.defi.fact_swaps fs
+  join date_filter df 
+    on fs.block_timestamp between df.start_date and df.end_date
+  where 
+    fs.succeeded = true
+    and fs.swap_from_mint != fs.swap_to_mint
+),
+
+combined_swaps as (
+  select 
+    sl.*,
+    t.tx_index,
+    pd.price
+  from swap_list sl
+  join tx_list t 
+    on sl.tx_id = t.tx_id
+  join price_data pd
+    on pd.hour = date_trunc('hour', sl.block_timestamp)
+    and pd.token_address = sl.swap_from_mint
+)
+
+select 
+  count(s1.tx_id) as "N° of Sandwiches",
+  sum((s3.swap_to_amount - s1.swap_from_amount) * s1.price) as "Sandwich PnL [USD]"
+from combined_swaps s1
+join combined_swaps s2 
+  on s1.block_id = s2.block_id 
+  and s1.program_id = s2.program_id
+  and s1.swap_to_mint = s2.swap_to_mint
+  and s1.swap_from_mint = s2.swap_from_mint
+  and s2.tx_index = s1.tx_index+1
+  and s2.swapper <> s1.swapper
+join combined_swaps s3 
+  on s1.block_id = s3.block_id 
+  and s1.tx_id <> s3.tx_id
+  and s1.program_id = s3.program_id
+  and s1.swap_to_mint = s3.swap_from_mint
+  and s1.swap_from_mint = s3.swap_to_mint
+  and s1.swap_to_amount = s3.swap_from_amount
+  and s2.swapper <> s3.swapper
+  and s3.tx_index = s2.tx_index+1
+  and s3.swap_to_amount > s1.swap_from_amount
+
+
+  bsol holders
+
+-- forked from blze holders @ https://flipsidecrypto.xyz/edit/queries/707e120e-98e9-4e1e-994b-4ef270de1355
+
+WITH token_holdings AS (
+  SELECT block_timestamp, post_tokens.value:owner AS wallet, post_tokens.value:mint AS token, post_tokens.value:uiTokenAmount:uiAmount AS amount,
+    ROW_NUMBER() OVER (PARTITION BY wallet, token ORDER BY block_timestamp DESC) AS rn
+  FROM solana.core.fact_transactions, LATERAL FLATTEN(input => post_token_balances) post_tokens
+  WHERE SUCCEEDED = 'True'
+  AND post_tokens.value:owner = wallet
+  AND post_tokens.value:mint = 'bSo13r4TkiE4KumL71LsHTPpL2euBYLFx6h9HP3piy1'
+  AND block_timestamp >= CURRENT_DATE - 90
+  ORDER BY wallet, token, rn
+)
+, base as (select wallet, amount
+    FROM token_holdings 
+     WHERE rn = 1 AND amount IS NOT NULL AND amount <> ''
+      and amount > 0.1
+     order by amount desc
+  )
+
+select
+  	      case 
+          -- when amount < 1 then 'Hold < 1 BSOL'
+          when amount < 10 then 'Hold < 10 BSOL'
+          when amount < 100 then 'Hold < 100 BSOL'
+          when amount < 1000 then 'Hold < 1k BSOL'
+          when amount < 10000 then 'Hold < 10k BSOL'
+  			else 'Hold > 10k BSOL' end as type,
+    -- https://count.co/sql-resources/snowflake/histograms
+    count(wallet) as user_count,
+    floor(amount / 10) * 10 as bin_start,
+    floor(amount / 10) * 10 + 10 as bin_end,
+    concat(
+        cast(floor(amount / 10) * 10 as STRING),
+        ' - ',
+        cast(floor(amount / 10) * 10 + 10 as STRING)
+    ) as bin_range,
+    sum(user_count) over (order by bin_start) as cumu_address
+from
+    base
+group by
+    bin_start,
+    bin_end,
+    bin_range,
+  	type
+order by
+    bin_start
+limit 2500 
+
+
+pump.fun dex v1
+
+WITH tab1 AS (
+  SELECT 
+    tx_id,
+    block_timestamp,
+    signers[0] AS trader, 
+    inner_instruction['instructions'][0]['parsed']['info']['mint'] AS token_in,
+    inner_instruction['instructions'][0]['parsed']['info']['tokenAmount']['uiAmount'] AS amount_in,
+    inner_instruction['instructions'][1]['parsed']['info']['mint'] AS token_out,
+    inner_instruction['instructions'][1]['parsed']['info']['tokenAmount']['uiAmount'] AS amount_out
+  FROM solana.core.fact_events
+  WHERE program_id = 'pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA'
+    AND succeeded
+    AND ARRAY_SIZE(instruction['accounts']) = 17 
+    AND amount_in IS NOT NULL
+    AND amount_out IS NOT NULL
+    AND inner_instruction['instructions'][1]['parsed']['info']['mint'] IS NOT NULL
+)
+
+SELECT 
+  DATE(block_timestamp) AS date,
+  COUNT(DISTINCT tx_id) AS swaps,
+  COUNT(DISTINCT trader) AS traders,
+  SUM(CASE 
+        WHEN token_in = 'So11111111111111111111111111111111111111112' THEN amount_in 
+        WHEN token_out = 'So11111111111111111111111111111111111111112' THEN amount_out 
+      END) AS swap_volume_sol
+FROM tab1 
+GROUP BY 1
+ORDER BY 1;
+
+
+TOP 10 Tokens Swapped From SOL
+
+SELECT
+  SWAP_TO_MINT AS swapped_to_token,
+  COUNT(tx_id) AS txns_amount
+FROM
+  solana.defi.fact_swaps
+WHERE
+  swap_program ilike 'raydium%'
+  AND swap_from_mint = 'So11111111111111111111111111111111111111112'
+  AND succeeded = 'TRUE'
+  AND block_timestamp >= current_date - 30
+GROUP BY
+  swapped_to_token
+ORDER BY
+  txns_amount
+ DESC
+LIMIT
+  10
+
+  tokens by volume
+
+-- forked from top 10 token by volume @ https://flipsidecrypto.xyz/studio/queries/8ea13bfb-189a-441b-af3f-1e22b76178e6
+
+-- forked from total @ https://flipsidecrypto.xyz/studio/queries/b3ea3c98-fc79-4c60-a18d-816fe5a0e26d
+
+-- forked from base @ https://flipsidecrypto.xyz/studio/queries/b3c76ba9-e256-42ee-af38-467881c899e8
+
+with bonk_price as (
+  select hour,
+    symbol,
+    token_address,
+    price
+  from solana.price.ez_prices_hourly
+  where token_address = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263'
+)
+, base as (
+select a.block_timestamp,
+    a.tx_id,
+    swapper as user_address,
+    swap_from_mint,
+    swap_from_amount,
+    case when c.symbol is null then 'Unknown' else c.symbol end as swap_from_symbol,
+    swap_to_amount as bonk_amount,
+    swap_to_amount * price as volume_bonk_usd,
+    amount * 3 as fee_amount, -- Fees split into 3 addresses equally, so we just multiply by 3
+    amount * 3 * price as fee_amount_usd,
+    0.00203928 as rent_returned
+from solana.defi.fact_swaps_jupiter_summary a
+join bonk_price on (date_trunc('hour', a.block_timestamp) = hour)
+join (select * from solana.core.fact_transfers 
+    where tx_to = 'CbX9HYvyHBa2RuotGN8Y8hCKow6xppdrhAh6RL6i2BEf'  -- Fee collected address (one of the three)
+      and mint = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263'
+      and block_timestamp >= '2024-01-12') b on (swapper = tx_from and a.tx_id = b.tx_id)
+left join solana.price.ez_asset_metadata c on (swap_from_mint = c.token_address)
+where swap_to_mint = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263'
+  and a.block_timestamp >= '2024-01-12'
+-- order by block_timestamp desc limit 10
+)
+
+select swap_from_symbol,
+  swap_from_mint,
+  count(distinct tx_id) as tx_count,
+  count(distinct user_address) as user_count,
+  round(sum(volume_bonk_usd),2) as bonk_scoop_usd,
+from base
+group by 1,2
+order by bonk_scoop_usd desc
+
+ 
+$ME DEXs' Price
+ 
+
+SELECT
+  HOUR as date,
+  median(price) as lsd_price,  
+  lsd_price * 999999952.94 as "FDV"
+FROM solana.price.ez_prices_hourly
+WHERE TOKEN_ADDRESS = 'MEFNBXixkEbait3xn9bkm8WsJzXtVsaJEn4c8Sam21u'
+GROUP by 1
+order by 1 DESC
+
+ 
+Percent Staked SOL
+
+WITH price AS (
+SELECT
+  hour::date AS date1,
+  AVG(price) AS price
+FROM solana.price.ez_prices_hourly
+  WHERE token_address = 'So11111111111111111111111111111111111111112'
+GROUP BY 1
+),
+
+base AS (
+SELECT
+  last_timestamp AS block_timestamp,
+  account_sol AS net_stakes,
+  account_sol * price AS net_stakes_usd
+FROM solana.gov.fact_vote_accounts d JOIN price p ON d.last_timestamp::date = p.date1::date
+  WHERE last_timestamp::date >= '2020-10-10'
+)
+
+SELECT
+  SUM(net_stakes) AS staked,
+  597380000 AS circulating_supply,
+  (staked/circulating_supply)*100 AS staked_percent,
+  SUM(net_stakes_usd) AS net_stake_usd
+FROM base
+
+MEV Tipping Counts
+
+-- forked from MEV Tipping Strategy @ https://flipsidecrypto.xyz/studio/queries/90a86e99-c198-49cd-a2fc-889dd98e5698
+
+with date_filter as (
+  select
+    case
+      when {{n_days}} != 0 then dateadd(day, -{{n_days}}, current_date())
+      else to_timestamp('{{start_date}}')
+      end start_date,
+    case
+      when {{n_days}} != 0 then current_date()
+      else to_timestamp('{{end_date}}')
+      end end_date
+)
+
+,validators_pubkeys as (
+   select column1 as pubkey
+   from values
+-- Control set start --
+     ('HEL1USMZKAL2odpNBj2oCjffnFGaYwmbGmyewGv1e2TU'), -- Helius
+     ('DRpbCBMxVnDK7maPM5tGv6MvB3v1sRMC86PZ8okm21hy'), -- Binance
+     ('DtdSSG8ZJRZVv5Jx7K1MeWp7Zxcu19GD5wQRGRpQ9uMF'), -- Galaxy
+     ('CW9C7HBwAMgqNdXkNgFg9Ujr3edR2Ab9ymEuQnVacd1A'), -- Coinbase 02
+     ('q9XWcZ7T1wP4bW9SB4XgNNwjnFEJ982nE8aVbbNuwot'), -- Ledger by Figment
+     ('Fd7btgySsrjuo25CJCj7oE7VPMyezDhnx7pZkj2v69Nk'), -- Figment
+     ('ChorusmmK7i1AxXeiTtQgQZhQNiXYU84ULeaYF1EH15n'), -- Chorus One
+     ('DWvDTSh3qfn88UoQTEKRV2JnLt5jtJAVoiCo3ivtMwXP'), -- P2P.org
+     ('DTSUkYHd2e9P2HLyZfbLarsbDdPhQUhZnWjRYuJZQRC8'), -- Temporal
+     ('2abwQG3v2xRemFxRszVHSfnjJNe9zu5X8duKgxjyLeaK'), -- C1 Research
+-- Control set end --
+
+-- Test set start --
+     ('5pPRHniefFjkiaArbGX3Y8NUysJmQ9tMZg3FrFGwHzSm'), -- Kiln1
+     ('EvnRmnMrd69kFdbLMxWkTn1icZ7DCceRhvmb2SJXqDo4'), -- Everstake
+     ('BtsmiEEvnSuUnKxqXj2PZRYpPJAc7C34mGz8gtJ1DAaH'), -- Coinbase
+     ('7Zm1pE4FubFYZDyAQ5Labh3A4cxDcvve1s3WCRgEAZ84'), -- test 7Z
+     ('91oPXTs2oq8VvJpQ5TnvXakFGnnJSpEB6HFWDtSctwMt'), -- Stronghold
+     ('Awes4Tr6TX8JDzEhCZY2QVNimT6iD1zWHzf1vNyGvpLM'), -- Staking Facilities
+     ('ACvL73V4GNnxPVfZ7K89jCrYurLyzpEuE9qirjvh2Xmi') -- test AC
+-- Test set end --
+ )
+
+,leader_slots as(
+    select
+      date_trunc('day', block_timestamp) as dt,
+      block_id,
+      val.validator_name as validator
+      --vpk.pubkey as validator
+
+    from solana.gov.fact_rewards_fee rf
+    inner join solana.gov.fact_validators val 
+          on rf.pubkey = val.node_pubkey
+          and rf.epoch_earned = val.epoch
+    inner join validators_pubkeys vpk on vpk.pubkey = val.node_pubkey
+    join date_filter
+      on rf.block_timestamp between start_date and end_date
+     
+)
+
+,jito_tips as(
+  select 
+    ls.dt,
+    ls.block_id,
+    ls.validator,
+    ft.tx_id,
+    ft.tx_from as searcher,
+    ft.amount as tips
+  
+  from leader_slots ls
+  left join solana.core.fact_transfers ft
+    on ls.block_id = ft.block_id
+  join date_filter
+    on ft.block_timestamp between start_date and end_date
+  
+  where
+    (ft.tx_to = '96gYZGLnJYVFmbjzopPSU6QiEV5fGqZNyN9nmNhvrZU5'
+     or ft.tx_to = 'HFqU5x63VTqvQss8hp11i4wVV8bD44PvwucfZ2bU7gRe'
+     or ft.tx_to = 'Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY'
+     or ft.tx_to = 'ADaUMid9yfUytqMBgopwjb2DTLSokTSzL1zt6iGPaS49'
+     or ft.tx_to = 'DfXygSm4jCyNCybVYYK6DwvWqjKee8pbDmJGcLWNDXjh'
+     or ft.tx_to = 'ADuUkR4vqLUMWXxW9gh6D6L8pMSawimctcNZ5pGwDcEt'
+     or ft.tx_to = 'DttWaMuVvTiduZRnguLF7jNxTgiMBZ1hyAumKUiL2KRL'
+     or ft.tx_to = '3AVi9Tg9Uo68tJfuvoKvqKNWKkC5wPdSSdeBnizKZ6jT'
+    )
+)
+
+,jito_tips_counter as(
+  select 
+    dt,
+    validator,
+    block_id,
+    sum(case when tx_id is not null then 1 else 0 end) as n_tips
+
+  from jito_tips
+  group by 1,2,3
+
+)
+
+,grouped_data as(
+  select 
+    dt,
+    validator,
+    percentile_cont(0.25) within group (order by n_tips) as p25,
+    percentile_cont(0.5) within group (order by n_tips) as p50,
+    percentile_cont(0.95) within group (order by n_tips) as p95,
+    avg(n_tips) as avg
+
+  from jito_tips_counter
+
+  group by 1,2
+)
+
+select * from grouped_data
+where validator is not null
+
+
+Monthly Metaplex NFT Mints
+
+WITH price AS (
+SELECT
+  hour::date AS date1,
+  CASE
+    WHEN token_address = 'So11111111111111111111111111111111111111112' THEN 'So11111111111111111111111111111111111111111'
+    ELSE token_address
+  END AS token_address,
+  AVG(price) AS price
+FROM solana.price.ez_prices_hourly
+  -- WHERE token_address = ''
+GROUP BY 1,2
+),
+
+base AS (
+SELECT
+  block_timestamp,
+  tx_id,
+  mint,
+  purchaser,
+  mint_price * price AS mint_price,
+  mint_currency,
+  program_id
+FROM solana.nft.fact_nft_mints m JOIN price p 
+ON m.block_timestamp::date = p.date1 AND m.mint_currency = p.token_address
+  WHERE program_id IN (
+  'BGUMAp9Gq7iTEuizy4pqaxsTyUCBK68MDfK752saRPUY',
+  'CndyV3LdqHUfDLmE5naZjVN8rBZz4tqhdefbAnjHG3JR',
+  'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
+)
+  AND succeeded = 'TRUE'
+-- having mint_price < 1 --excluding liquidity pool nft mint prices
+)
+
+SELECT
+  DATE_TRUNC(month, block_timestamp) AS timespan,
+  COUNT(DISTINCT tx_id) AS mint_transactions,
+  SUM(mint_transactions) OVER (ORDER BY timespan) AS cummul_mint_transactions,
+  COUNT(DISTINCT mint) AS NFT_mints,
+  SUM(NFT_mints) OVER (ORDER BY timespan) AS cummul_NFT_mints,
+  COUNT(DISTINCT purchaser) AS minters,
+  SUM(minters) OVER (ORDER BY timespan) AS cummul_minters,
+  ROUND(SUM(
+      CASE
+        WHEN mint_price < 1 THEN mint_price
+        ELSE 0
+      END), 2) AS total_mint_price,
+  SUM(total_mint_price) OVER (ORDER BY timespan) AS cummul_mint_price,
+  ROUND(AVG(
+      CASE
+        WHEN mint_price < 1 THEN mint_price
+        ELSE 0
+      END), 7) AS avg_mint_price
+FROM base
+GROUP BY 1--, 2 
+ORDER BY timespan
+
+Magic Eden Volume
+
+WITH price AS (
+  SELECT
+    price
+  FROM
+    solana.price.ez_prices_hourly
+  WHERE
+    token_address = 'So11111111111111111111111111111111111111112'
+  ORDER BY
+    hour DESC
+  LIMIT 1
+),
+
+nft_data AS (
+  SELECT
+    SUM(CASE WHEN seller = '{{wallet}}' THEN sales_amount ELSE 0 END) AS total_sells_amount,
+    SUM(CASE WHEN purchaser = '{{wallet}}' THEN sales_amount ELSE 0 END) AS total_buys_amount,
+    COUNT(CASE WHEN seller = '{{wallet}}' THEN tx_id END) AS total_sells_count,
+    COUNT(CASE WHEN purchaser = '{{wallet}}' THEN tx_id END) AS total_buys_count
+  FROM
+    solana.nft.fact_nft_sales
+  WHERE
+    (seller = '{{wallet}}' OR purchaser = '{{wallet}}')
+    AND (marketplace ILIKE '%magic eden%' OR marketplace ILIKE '%magic eden v2%')
+    AND succeeded
+)
+
+SELECT
+  nft_data.total_sells_amount,
+  nft_data.total_sells_amount * p.price AS sell_volume,
+  nft_data.total_buys_amount,
+  nft_data.total_buys_amount * p.price AS buy_volume,
+  nft_data.total_sells_count,
+  nft_data.total_buys_count
+FROM 
+  nft_data
+JOIN 
+  price p
+ON 
+  TRUE;  -- Cross join with price CTE
+
+Total Volume of an address
+WITH swap_data AS (
+  SELECT
+    swapper,
+    SUM(SWAP_FROM_AMOUNT_USD) as total
+  FROM
+    solana.defi.ez_dex_swaps
+  WHERE
+    swap_program like 'jupiter%'
+    AND swapper = '{{Address}}'
+  GROUP BY
+    swapper
+)
+SELECT
+  '{{Address}}' as swapper,
+  COALESCE(total, 0) as total
+FROM
+  swap_data
+RIGHT JOIN
+  (SELECT '{{Address}}' as swapper) as addr
+ON
+  swap_data.swapper = addr.swapper;
+
+ 
+
+ 
+

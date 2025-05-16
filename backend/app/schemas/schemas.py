@@ -191,6 +191,7 @@ class DashboardChart(DashboardChartInDBBase):
 class NaturalLanguageQuery(BaseModel):
     query: str
     provider: str = "flipside"
+    thread_id: Optional[str] = None
 
 
 # Query Result Schema
@@ -198,3 +199,80 @@ class QueryResult(BaseModel):
     data: List[Dict[str, Any]]
     query: str
     vega_spec: Dict[str, Any]
+    assistant_message: Optional[str] = None
+    thread_id: Optional[str] = None
+    requires_clarification: Optional[bool] = False
+
+
+# Tag Schemas
+class TagBase(BaseModel):
+    name: str
+
+
+class TagCreate(TagBase):
+    pass
+
+
+class TagUpdate(TagBase):
+    name: Optional[str] = None
+
+
+class TagInDBBase(TagBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+
+
+class Tag(TagInDBBase):
+    pass
+
+
+# Conversation Schemas
+class ConversationMessageBase(BaseModel):
+    role: str
+    content: str
+
+
+class ConversationMessageCreate(ConversationMessageBase):
+    thread_id: str
+
+
+class ConversationMessageInDBBase(ConversationMessageBase):
+    id: int
+    thread_id: str
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ConversationMessage(ConversationMessageInDBBase):
+    pass
+
+
+class ConversationThreadBase(BaseModel):
+    thread_id: str
+    title: Optional[str] = None
+
+
+class ConversationThreadCreate(ConversationThreadBase):
+    pass
+
+
+class ConversationThreadUpdate(ConversationThreadBase):
+    title: Optional[str] = None
+
+
+class ConversationThreadInDBBase(ConversationThreadBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    last_activity_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ConversationThread(ConversationThreadInDBBase):
+    messages: List[ConversationMessage] = []

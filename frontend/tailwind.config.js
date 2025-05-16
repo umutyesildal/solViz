@@ -8,36 +8,50 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: '#7E5AF0', // Purple primary color for Solana theme
-          50: '#F5F2FF',
-          100: '#EBE4FF',
-          200: '#D7CAFF',
-          300: '#B9A0FF',
-          400: '#9677FF',
-          500: '#7E5AF0', // Main primary
-          600: '#6A48D2',
-          700: '#5636B5',
-          800: '#412A8F',
-          900: '#2D1F68',
+        blue: {
+          DEFAULT: '#3b82f6',
+          50: '#eff6ff',
+          100: '#dbeafe',
+          200: '#bfdbfe',
+          300: '#93c5fd',
+          400: '#60a5fa',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+          800: '#1e40af',
+          900: '#1e3a8a',
         },
-        secondary: {
-          DEFAULT: '#00FFA3', // Solana's green
-          50: '#E0FFF6',
-          100: '#CCFFE9',
-          200: '#99FFD3',
-          300: '#66FFBD',
-          400: '#33FFA8',
-          500: '#00FFA3', // Main secondary
-          600: '#00D989',
-          700: '#00B36F',
-          800: '#008D56',
-          900: '#00663D',
-        },
+        dark: {
+          DEFAULT: '#121212',
+          50: '#404040',
+          100: '#333333',
+          200: '#292929',
+          300: '#202020',
+          400: '#181818',
+          500: '#121212',
+          600: '#0d0d0d',
+          700: '#0a0a0a',
+          800: '#070707',
+          900: '#030303',
+        }
       },
       fontFamily: {
         sans: ['var(--font-geist-sans)'],
         mono: ['var(--font-geist-mono)'],
+      },
+      borderRadius: {
+        DEFAULT: '0.5rem',
+        'sm': '0.375rem',
+        'md': '0.5rem',
+        'lg': '0.75rem',
+        'xl': '1rem',
+      },
+      borderColor: {
+        DEFAULT: 'rgba(75, 85, 99, 0.3)',
+      },
+      boxShadow: {
+        'soft': '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        'glow': '0 0 15px rgba(59, 130, 246, 0.5)',
       },
     },
   },

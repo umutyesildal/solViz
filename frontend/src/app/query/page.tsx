@@ -1,13 +1,13 @@
 "use client";
 
 import { useAuthStore } from "@/store/auth";
-import NaturalLanguageQuery from "@/components/query/NaturalLanguageQuery";
+import ConversationalQuery from "@/components/query/ConversationalQuery";
 import AppLayout from "@/components/layout/AppLayout";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function QueryPage() {
-  const { isAuthenticated, checkAuth } = useAuthStore();
+  const { checkAuth } = useAuthStore();
   const router = useRouter();
 
   useEffect(() => {
@@ -19,7 +19,7 @@ export default function QueryPage() {
 
   return (
     <AppLayout>
-      <NaturalLanguageQuery />
+      <ConversationalQuery />
     </AppLayout>
   );
 }
