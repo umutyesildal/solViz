@@ -16,7 +16,7 @@ from app.utils.logger import (
 )
 
 # Initialize OpenAI client with API key directly
-client = openai.Client(api_key="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")
+client = openai.Client(api_key="")
 
 # --- System prompts for non-assistant API calls ---
 FLIPSIDE_SYSTEM_PROMPT = """
@@ -300,7 +300,6 @@ def process_nl_query(nl_query: str, user_id: int = None, thread_id: str = None, 
     try:
         logger.info(f"Attempting to execute SQL: {sql_query[:100]}...")
         data = _run_sql_query_with_retries(sql_query, thread_id)
-        
         # Check if we got valid data
         if not data:
             logger.warning("SQL executed successfully but returned no data")
@@ -312,30 +311,27 @@ def process_nl_query(nl_query: str, user_id: int = None, thread_id: str = None, 
                 "thread_id": thread_id,
                 "requires_clarification": False
             }
-            
         # Log data sample for debugging
         data_sample = str(data[:2]) if len(data) > 0 else "[]"
         logger.info(f"SQL execution successful. Sample data: {data_sample}")
-        
         # Generate visualization with the data
         vega_spec = generate_vega_spec(data, nl_query)
-        
+        # Generate a user-friendly summary for the user
+        user_friendly_message = generate_chart_summary(data, nl_query)
         # Log if vega spec generation was successful
         if vega_spec:
             logger.info("Vega spec generation successful")
-        
         return {
             "data": data,
             "query": sql_query,
             "vega_spec": vega_spec,
-            "assistant_message": cleaned_message,
+            "assistant_message": user_friendly_message,
             "thread_id": thread_id,
             "requires_clarification": False
         }
     except Exception as e:
         error_msg = str(e)
         logger.error(f"Error executing SQL query: {error_msg}")
-        
         # Return a helpful error message to the user
         return {
             "data": [],
@@ -576,7 +572,6 @@ def generate_vega_spec(data: List[Dict[str, Any]], nl_query: str) -> Dict[str, A
     Generate a Vega-Lite visualization specification based on data and the natural language query
     """
     logger.info("Generating Vega-Lite visualization specification")
-    # Analyze the data structure
     if not data or len(data) == 0:
         logger.warning("No data available for visualization")
         return {
@@ -589,70 +584,103 @@ def generate_vega_spec(data: List[Dict[str, Any]], nl_query: str) -> Dict[str, A
     try:
         # Sample a small subset of data for OpenAI to analyze
         sample_data = data[:5]
-        
         sample_json = json.dumps(sample_data)
-        
-        # Create a prompt for OpenAI
+
         system_prompt = """
-        You are a data visualization expert specializing in creating Vega-Lite specifications.
-        Given a dataset sample and a natural language query, create a Vega-Lite specification that best visualizes the data.
-        Return ONLY the JSON for the Vega-Lite specification without any explanations or markdown.
-        """
-        
+You are a data visualization expert specializing in Vega-Lite.
+Given a dataset sample and a user's question, create a visually appealing, modern, and interactive Vega-Lite chart.
+- Use the full available width and height (set width and height to 'container' or responsive).
+- Add tooltips and a legend if appropriate.
+- Use a modern, non-white background (e.g., #18181b or #212121) and a color palette that works well on dark backgrounds.
+- Choose the best chart type for the data and question (line, area, bar, etc.).
+- Make sure axis labels and titles are clear and readable.
+- Return ONLY the Vega-Lite JSON spec, no markdown or explanation.
+"""
+
         user_prompt = f"""
-        Natural language query: {nl_query}
-        
-        Here's a sample of the data (first 5 rows):
-        {sample_json}
-        
-        Create a Vega-Lite specification that:
-        1. Effectively visualizes this data in relation to the query
-        2. Uses appropriate mark types (bar, line, area, etc.)
-        3. Has clear axis labels and titles
-        4. Uses a clean color scheme
-        5. Includes proper formatting for numbers and dates
-        
-        Return ONLY the Vega-Lite specification as valid JSON.
-        """
-        
-        # Log the OpenAI request
+Natural language query: {nl_query}
+
+Here's a sample of the data (first 5 rows):
+{sample_json}
+
+Create a Vega-Lite specification that:
+1. Effectively visualizes this data in relation to the query
+2. Uses appropriate mark types (bar, line, area, etc.)
+3. Has clear axis labels and titles
+4. Uses a clean color scheme for dark backgrounds
+5. Includes proper formatting for numbers and dates
+6. Is interactive with tooltips and legend
+
+Return ONLY the Vega-Lite specification as valid JSON.
+"""
+
         log_openai_request(f"Vega-Lite spec generation for query: {nl_query}", settings.OPENAI_MODEL)
-        
+
         response = client.chat.completions.create(
             model=settings.OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            temperature=0.1
+            temperature=0.2
         )
-        
-        # Extract the Vega-Lite specification from the response
+
         vega_spec_text = response.choices[0].message.content
-        
-        # Log the OpenAI response
         log_openai_response(vega_spec_text)
-        
+
         # Strip out any markdown formatting if present
         if "```json" in vega_spec_text:
             vega_spec_text = vega_spec_text.split("```json")[1].split("```")[0].strip()
         elif "```" in vega_spec_text:
             vega_spec_text = vega_spec_text.split("```")[1].split("```")[0].strip()
-        
-        # Parse the JSON
+
         vega_spec = json.loads(vega_spec_text)
         logger.info("Successfully generated Vega-Lite specification")
-        
+
         # Add the data to the spec
         vega_spec["data"] = {"values": data}
-        
+
+        # Optionally, force responsive width/height if not set
+        vega_spec.setdefault("width", "container")
+        vega_spec.setdefault("height", 400)
+
+        # Optionally, set a dark background if not set
+        if "background" not in vega_spec:
+            vega_spec["background"] = "#212121"
+
+        # Remove grid lines from all axes if present
+        if "encoding" in vega_spec:
+            for axis in ["x", "y"]:
+                if axis in vega_spec["encoding"]:
+                    if "axis" not in vega_spec["encoding"][axis]:
+                        vega_spec["encoding"][axis]["axis"] = {}
+                    vega_spec["encoding"][axis]["axis"]["grid"] = False
+
+        # For line/area charts, set y-axis domain to a smart range based on data
+        if vega_spec.get("mark") in ["line", {"type": "line"}, "area", {"type": "area"}]:
+            y_enc = vega_spec.get("encoding", {}).get("y", {})
+            y_field = y_enc.get("field")
+            if y_field and y_enc.get("type") == "quantitative":
+                # Calculate min/max for the y field
+                y_values = [row.get(y_field) for row in data if isinstance(row.get(y_field), (int, float))]
+                if y_values:
+                    y_min = min(y_values)
+                    y_max = max(y_values)
+                    y_range = y_max - y_min
+                    # Add 5% padding on both sides, but never below zero if all values are positive
+                    pad = y_range * 0.05 if y_range > 0 else 1
+                    domain_min = max(0, y_min - pad) if y_min >= 0 else y_min - pad
+                    domain_max = y_max + pad
+                    if "scale" not in y_enc:
+                        y_enc["scale"] = {}
+                    y_enc["scale"]["domain"] = [domain_min, domain_max]
+                    vega_spec["encoding"]["y"] = y_enc
+
         return vega_spec
-    
+
     except Exception as e:
         log_exception(e, "generate_vega_spec")
         logger.warning("Error generating Vega-Lite spec, falling back to default visualization")
-        
-        # If there's any error, return a simple default visualization
         return {
             "data": {"values": data},
             "mark": "bar",
@@ -660,8 +688,35 @@ def generate_vega_spec(data: List[Dict[str, Any]], nl_query: str) -> Dict[str, A
                 "x": {"field": list(data[0].keys())[0], "type": "nominal"},
                 "y": {"field": list(data[0].keys())[1], "type": "quantitative"}
             },
-            "title": "Data Visualization"
+            "title": "Data Visualization",
+            "background": "#212121",
+            "width": "container",
+            "height": 400
         }
+
+def generate_chart_summary(data: List[Dict[str, Any]], nl_query: str) -> str:
+    """
+    Use OpenAI to generate a user-friendly summary of the chart and data.
+    """
+    if not data:
+        return "No data available to summarize."
+    import json
+    sample_data = json.dumps(data[:5])
+    prompt = f"""
+    The user asked: '{nl_query}'
+    Here is a sample of the data: {sample_data}
+    Write a short, user-friendly summary (2-3 sentences) explaining what the chart shows. 
+    Do not mention SQL, code, or technical steps. Focus on the insight the user can get from the chart.
+    """
+    response = client.chat.completions.create(
+        model=settings.OPENAI_MODEL,
+        messages=[
+            {"role": "system", "content": "You are a helpful data analyst assistant."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.5
+    )
+    return response.choices[0].message.content.strip()
 
 def _clean_assistant_message(message: str) -> str:
     """

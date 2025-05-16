@@ -113,8 +113,14 @@ export default function ChartCard({
         )}
 
         <div className="mt-4">
-          <div className="w-full h-64 overflow-hidden border border-dark-300 bg-black">
-            <VegaLite spec={chart.vega_spec} data={{ table: chart.data }} />
+          <div className="w-full h-[400px] bg-[#212121] rounded-lg p-4 flex items-center justify-center">
+            <VegaLite
+              spec={chart.vega_spec}
+              data={{ table: chart.data }}
+              actions={false}
+              renderer="canvas"
+              style={{ width: "100%", height: "100%" }}
+            />
           </div>
         </div>
 

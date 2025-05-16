@@ -220,7 +220,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       {/* Content area */}
       <div className="flex flex-col lg:pl-64">
         {/* Navbar */}
-        <div className="sticky top-0 z-10 flex flex-shrink-0 h-16 glass-card bg-dark-400/30 backdrop-blur-xl shadow-lg border-b border-dark-300/30">
+        <div className="sticky top-0 z-10 flex flex-shrink-0 h-16 bg-dark-500">
           <button
             type="button"
             className="px-4 text-gray-300 hover:text-white transition-colors duration-200 lg:hidden"
@@ -230,20 +230,20 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <Bars3Icon className="w-6 h-6" aria-hidden="true" />
           </button>
 
+          {/* Navbar content split: left (title), right (actions) */}
           <div className="flex justify-between flex-1 px-4">
-            <div className="flex flex-1">
-              <div className="flex items-center w-full md:ml-0">
-                <h1 className="text-xl font-semibold gradient-text">
-                  {pathname === "/" && "Welcome to SolViz Studio"}
-                  {pathname === "/dashboard" && "Dashboard"}
-                  {pathname === "/charts" && "My Charts"}
-                  {pathname === "/query" && "New Query"}
-                  {pathname === "/profile" && "Profile"}
-                  {pathname === "/login" && "Sign In"}
-                  {pathname === "/register" && "Create an Account"}
-                  {pathname === "/debug" && "Debug Console"}
-                </h1>
-              </div>
+            {/* Left side: title */}
+            <div className="flex flex-1 items-center">
+              <h1 className="text-xl font-semibold gradient-text">
+                {pathname === "/" && "Welcome to SolViz Studio"}
+                {pathname === "/dashboard" && "Dashboard"}
+                {pathname === "/charts" && "My Charts"}
+                {pathname === "/query" && "New Query"}
+                {pathname === "/profile" && "Profile"}
+                {pathname === "/login" && "Sign In"}
+                {pathname === "/register" && "Create an Account"}
+                {pathname === "/debug" && "Debug Console"}
+              </h1>
             </div>
           </div>
         </div>
@@ -252,7 +252,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
         <main className="flex-1">
           <div className="py-8">
             <div className="px-6 mx-auto max-w-7xl sm:px-8 lg:px-10 animate-fade-in">
-              <div className="glass-card p-6 backdrop-blur-lg">{children}</div>
+              <div className="">{children}</div>
             </div>
           </div>
         </main>

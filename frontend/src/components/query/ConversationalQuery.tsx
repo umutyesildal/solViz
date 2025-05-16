@@ -65,7 +65,7 @@ export default function ConversationalQuery() {
   };
 
   return (
-    <div className="flex flex-col h-[80vh] max-w-2xl mx-auto mt-10 glass-card shadow-lg rounded-lg border border-dark-300">
+    <div className="flex flex-col h-[calc(100vh-5rem)] w-full border-gray-300 rounded-lg shadow-soft">
       {showIntro && (
         <div className="p-8 text-center">
           <h2 className="text-2xl font-bold gradient-text mb-2">
@@ -86,7 +86,7 @@ export default function ConversationalQuery() {
             }`}
           >
             <div
-              className={`max-w-[80%] px-4 py-3 rounded-2xl shadow-md ${
+              className={`max-w-[80%] px-4 py-3 rounded-lg shadow-soft ${
                 msg.role === "user"
                   ? "bg-blue-600 text-white"
                   : "bg-dark-700/80 text-white"
@@ -94,8 +94,14 @@ export default function ConversationalQuery() {
             >
               <div>{msg.content}</div>
               {msg.vegaSpec && msg.data && (
-                <div className="mt-4 bg-white rounded-lg p-2">
-                  <VegaLite spec={msg.vegaSpec} data={{ table: msg.data }} />
+                <div className="w-full h-[400px] bg-[#212121] rounded-lg p-4 flex items-center justify-center">
+                  <VegaLite
+                    spec={msg.vegaSpec}
+                    data={{ table: msg.data }}
+                    actions={false}
+                    renderer="canvas"
+                    style={{ width: "100%", height: "100%" }}
+                  />
                 </div>
               )}
             </div>
@@ -103,7 +109,7 @@ export default function ConversationalQuery() {
         ))}
         {loading && (
           <div className="flex justify-start">
-            <div className="px-4 py-3 rounded-2xl bg-dark-700/80 text-white flex items-center">
+            <div className="px-4 py-3 rounded-lg bg-dark-700/80 text-white flex items-center">
               <LoadingSpinner size="small" color="text-blue-500" />
               <span className="ml-2">AI is thinking...</span>
             </div>
@@ -111,7 +117,7 @@ export default function ConversationalQuery() {
         )}
         <div ref={chatEndRef} />
       </div>
-      <div className="border-t border-dark-300 bg-dark-800/80 px-4 py-3 flex items-end">
+      <div className="border-t border-gray-300 bg-dark-800/50 px-4 py-3 flex items-end rounded-b-lg">
         <textarea
           className="flex-1 resize-none bg-transparent text-white p-2 rounded-md focus:outline-none"
           rows={1}
